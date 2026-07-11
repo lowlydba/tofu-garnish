@@ -274,6 +274,20 @@ class TestPageChrome:
         html = render('{"VPC_Id": "vpc-1"}')
         assert 'data-name="vpc_id"' in html
 
+    def test_data_search_includes_scalar_value(self):
+        html = render('{"host": "EXAMPLE.com"}')
+        assert 'data-search="host example.com"' in html
+
+    def test_data_search_includes_nested_keys_and_leaves(self):
+        html = render('{"vpc": {"tags": {"Team": "Platform"}}, "subnets": [{"id": "s-1"}]}')
+        assert 'data-search="vpc tags team platform"' in html
+        assert 'data-search="subnets id s-1"' in html
+
+    def test_data_search_excludes_sensitive_values(self):
+        html = render('{"pw": {"value": "TopSecret", "sensitive": true}}')
+        assert 'data-search="pw"' in html
+        assert "topsecret" not in html.lower()
+
     def test_outputs_sorted_alphabetically_in_page(self):
         html = render('{"zebra": 1, "Apple": 2}')
         assert html.index('id="Apple"') < html.index('id="zebra"')

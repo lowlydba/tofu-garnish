@@ -202,20 +202,36 @@ def _render_value(value: object, depth: int = 0) -> str:
     return _render_list(value, depth)
 
 
+def _search_terms(value: object):
+    """Yield all keys and scalar leaf values within a value, for filtering."""
+    if isinstance(value, dict):
+        for k, v in value.items():
+            yield str(k)
+            yield from _search_terms(v)
+    elif isinstance(value, list):
+        for v in value:
+            yield from _search_terms(v)
+    else:
+        yield _raw_text(value)
+
+
 def _render_output(output: Output) -> str:
     if output.sensitive:
         body = f'<span class="sensitive">{MASK} <em>(sensitive)</em></span>'
+        search = output.name.lower()
     elif _is_scalar(output.value):
         # A top-level scalar is its own "row": value plus one copy button.
         body = (
             f'<span class="scalar">{_render_scalar(output.value)}'
             f"{_copy_button(output.value)}</span>"
         )
+        search = f"{output.name} {_raw_text(output.value)}".lower()
     else:
         body = _render_value(output.value)
+        search = " ".join([output.name, *_search_terms(output.value)]).lower()
     return (
         f'<section class="output" id="{_esc(output.name)}" '
-        f'data-name="{_esc(output.name.lower())}">'
+        f'data-name="{_esc(output.name.lower())}" data-search="{_esc(search)}">'
         f'<h2><a href="#{_esc(output.name)}">{_esc(output.name)}</a></h2>'
         f"{body}</section>"
     )
@@ -253,7 +269,7 @@ document.getElementById('filter').addEventListener('input', function () {
   var q = this.value.trim().toLowerCase();
   var any = false;
   document.querySelectorAll('section.output').forEach(function (s) {
-    var show = !q || s.dataset.name.indexOf(q) !== -1;
+    var show = !q || s.dataset.search.indexOf(q) !== -1;
     s.style.display = show ? '' : 'none';
     if (show) { any = true; }
   });
@@ -292,7 +308,7 @@ def render_page(page: Page) -> str:
 <h1>{_esc(page.title)}</h1>
 <p>{count} {noun} · generated {_esc(page.generated_at)}</p>
 </header>
-<input id="filter" type="search" placeholder="Filter outputs by name…" aria-label="Filter outputs by name">
+<input id="filter" type="search" placeholder="Filter outputs by name or value…" aria-label="Filter outputs by name or value">
 <main>
 {sections}
 <p id="no-match" class="no-match">No outputs match the filter.</p>
