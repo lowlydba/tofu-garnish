@@ -10,20 +10,22 @@
   <img alt="Python" src="https://img.shields.io/badge/python-3.9%2B-blue?logo=python&logoColor=white">
 </p>
 
-# tofu-garnish 🌿
+# tofu-garnish
 
 Turn OpenTofu/Terraform outputs into a simple, readable static page on your
 repo's GitHub Pages — so engineers can find that ARN without running `tofu
 output` or spelunking through state.
 
-Plug-and-play with [dflook/terraform-github-actions][dflook]. Supports many
-discrete applies (workspaces, accounts, tenants) publishing to one site
-without clobbering each other.
+* 🔒 dependency-free (two stdlib-only Python scripts, no third-party actions)
+* 🍽️ structure-aware HTML — tables, not JSON walls
+* 🏢 discrete multi-workspace publishing without clobbering
+* 🙈 sensitive outputs masked automatically
+* 🔌 plug-and-play with [dflook/terraform-github-actions][dflook]
 
 ---
 
 This README follows the [Diátaxis](https://diataxis.fr/) framework:
-[Tutorial](#tutorial) · [How-to guides](#how-to-guides) ·
+[Tutorial](#tutorial) · [How-to Guides](#how-to-guides) ·
 [Reference](#reference) · [Explanation](#explanation)
 
 ## Tutorial
@@ -77,14 +79,19 @@ Deploy from a branch**, then pick `gh-pages` / `/ (root)`.
 ### 3. Visit your page
 
 Open the site URL shown in the Pages settings (also available as the
-`page-url` action output on later runs). You'll see each output rendered as
-a card: maps as key/value tables, lists of objects as proper columnar tables,
-one copy button per row (nested values copy as pretty JSON), and a filter box
-that matches names, keys, and values.
+`page-url` action output on later runs).
+
+Expected result:
+
+- Each output rendered as a card: maps as key/value tables, lists of
+  objects as columnar tables.
+- One copy button per row — nested values copy as pretty JSON.
+- A filter box that matches names, keys, and values.
+- Sensitive outputs masked.
 
 That's it. Every push regenerates and republishes the page.
 
-## How-to guides
+## How-to Guides
 
 ### Publish multiple workspaces, accounts, or tenants
 
@@ -148,11 +155,12 @@ name (and become filterable):
           module-dir: my-terraform-config
 ```
 
+> [!NOTE]
 > **OpenTofu only.** This requires `tofu` ≥ 1.10 on the runner's PATH.
 > Terraform's `show` command has no configuration mode, so `module-dir`
 > will not work with Terraform — omit it and the page simply renders
 > without descriptions. tofu-garnish is a Tofu-focused project; Terraform
-> compatibility is best-effort for everything else.
+> compatibility is best-effort for everything else. YMMV.
 
 ### Use it without dflook actions
 

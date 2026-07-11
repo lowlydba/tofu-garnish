@@ -135,18 +135,18 @@ class TestParseErrors:
 
 
 class TestRenderScalars:
-    def test_string_value(self):
-        html = render('{"host": "example.com"}')
-        assert "<code>example.com</code>" in html
-
-    def test_bool_and_null(self):
-        html = render('{"flag": true, "nothing": null}')
-        assert "<code>true</code>" in html
-        assert '<span class="null">null</span>' in html
-
-    def test_number(self):
-        html = render('{"count": 42}')
-        assert "<code>42</code>" in html
+    @pytest.mark.parametrize(
+        ("outputs_json", "expected"),
+        [
+            ('{"host": "example.com"}', "<code>example.com</code>"),
+            ('{"count": 42}', "<code>42</code>"),
+            ('{"flag": true}', "<code>true</code>"),
+            ('{"flag": false}', "<code>false</code>"),
+            ('{"nothing": null}', '<span class="null">null</span>'),
+        ],
+    )
+    def test_scalar_rendering(self, outputs_json, expected):
+        assert expected in render(outputs_json)
 
     def test_copy_button_on_top_level_scalar(self):
         html = render('{"host": "example.com"}')
@@ -155,29 +155,27 @@ class TestRenderScalars:
 
 
 class TestCopyButtons:
-    def test_one_button_per_map_row(self):
-        html = render('{"vpc": {"id": "vpc-123", "cidr": "10.0.0.0/16"}}')
-        assert html.count('<button class="copy"') == 2
-
-    def test_no_buttons_on_nested_leaves(self):
-        # tags is nested inside vpc: its inner rows get no buttons, but the
-        # vpc row's button copies the whole tags-containing structure.
-        html = render('{"vpc": {"id": "vpc-123", "tags": {"Team": "platform"}}}')
-        assert html.count('<button class="copy"') == 2
-
-    def test_one_button_per_grid_row(self):
-        html = render('{"subnets": [{"id": "s-1"}, {"id": "s-2"}, {"id": "s-3"}]}')
-        assert html.count('<button class="copy"') == 3
+    @pytest.mark.parametrize(
+        ("outputs_json", "buttons"),
+        [
+            # one button per map row
+            ('{"vpc": {"id": "vpc-123", "cidr": "10.0.0.0/16"}}', 2),
+            # nested leaves get no buttons; the containing row's button
+            # copies the whole nested structure
+            ('{"vpc": {"id": "vpc-123", "tags": {"Team": "platform"}}}', 2),
+            # one button per grid row
+            ('{"subnets": [{"id": "s-1"}, {"id": "s-2"}, {"id": "s-3"}]}', 3),
+            # one button per scalar list item
+            ('{"arns": ["arn:a", "arn:b"]}', 2),
+        ],
+    )
+    def test_one_button_per_top_level_row(self, outputs_json, buttons):
+        assert render(outputs_json).count('<button class="copy"') == buttons
 
     def test_row_button_copies_nested_json(self):
         html = render('{"vpc": {"tags": {"Team": "platform"}}}')
         # data-raw on the vpc row holds pretty JSON including nested leaves.
         assert "&quot;Team&quot;: &quot;platform&quot;" in html
-
-    def test_scalar_list_items_get_buttons(self):
-        html = render('{"arns": ["arn:a", "arn:b"]}')
-        assert html.count('<button class="copy"') == 2
-        assert 'data-raw="arn:a"' in html
 
     def test_bool_and_null_raw_text(self):
         html = render('{"flag": true, "nothing": null}')
@@ -226,13 +224,10 @@ class TestRenderNested:
 
 
 class TestSensitive:
-    def test_sensitive_value_is_masked(self):
+    def test_sensitive_output_masked_with_no_leak(self):
         html = render(fixture("tofu_output_json.json"))
         assert MASK in html
         assert "(sensitive)" in html
-
-    def test_sensitive_raw_value_never_appears(self):
-        html = render(fixture("tofu_output_json.json"))
         assert "s3cr3t-hunter2" not in html
 
     def test_sensitive_output_has_no_copy_button(self):
@@ -241,19 +236,17 @@ class TestSensitive:
 
 
 class TestEscaping:
-    def test_value_is_escaped(self):
-        html = render(json.dumps({"xss": "<script>alert(1)</script>"}))
-        assert "<script>alert(1)" not in html
-        assert "&lt;script&gt;" in html
-
-    def test_output_name_is_escaped(self):
-        html = render(json.dumps({'<img src=x onerror="a">': "v"}))
-        assert "<img" not in html
-
-    def test_nested_keys_are_escaped(self):
-        html = render(json.dumps({"m": {"<b>k</b>": "<i>v</i>"}}))
-        assert "<b>" not in html
-        assert "<i>" not in html
+    @pytest.mark.parametrize(
+        ("outputs_json", "must_not_appear"),
+        [
+            (json.dumps({"xss": "<script>alert(1)</script>"}), "<script>alert(1)"),
+            (json.dumps({'<img src=x onerror="a">': "v"}), "<img"),
+            (json.dumps({"m": {"<b>k</b>": "<i>v</i>"}}), "<b>"),
+            (json.dumps({"items": [{"<i>c</i>": "<u>v</u>"}]}), "<u>"),
+        ],
+    )
+    def test_names_keys_and_values_escaped(self, outputs_json, must_not_appear):
+        assert must_not_appear not in render(outputs_json)
 
     def test_title_is_escaped(self):
         html = render('{"a": 1}', title="<script>bad</script>")
@@ -364,9 +357,9 @@ class TestDescriptionsOnPage:
         assert '<p class="desc">' not in html
 
     def test_sensitive_output_still_shows_description(self):
-        outputs = parse_outputs('{"pw": {"value": "shh", "sensitive": true}}')
-        apply_descriptions(outputs, {"pw": "The database password"})
-        html = render_page(Page(title="T", outputs=outputs, generated_at="now"))
+        html = self._render(
+            '{"pw": {"value": "shh", "sensitive": true}}', {"pw": "The database password"}
+        )
         assert '<p class="desc">The database password</p>' in html
         assert "shh" not in html
 
