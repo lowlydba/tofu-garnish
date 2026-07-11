@@ -7,17 +7,17 @@
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/lowlydba/tofu-garnish"></a>
   <a href="https://github.com/lowlydba/tofu-garnish/releases"><img alt="Release" src="https://img.shields.io/github/v/release/lowlydba/tofu-garnish?logo=github&sort=semver"></a>
   <a href="https://docs.zizmor.sh"><img alt="zizmor: pedantic" src="https://img.shields.io/badge/zizmor-pedantic-green?logo=githubactions&logoColor=white"></a>
-  <img alt="Python" src="https://img.shields.io/badge/python-3.9%2B-blue?logo=python&logoColor=white">
+  <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white">
 </p>
 
 # tofu-garnish
 
 Turn OpenTofu/Terraform outputs into a simple, readable static page on your
-repo's GitHub Pages — so engineers can find that ARN without running `tofu
+repo's GitHub Pages, so engineers can find that ARN without running `tofu
 output` or spelunking through state.
 
 * 🔒 dependency-free (two stdlib-only Python scripts, no third-party actions)
-* 🍽️ structure-aware HTML — tables, not JSON walls
+* 🍽️ structure-aware HTML: tables, not JSON walls
 * 🏢 discrete multi-workspace publishing without clobbering
 * 🙈 sensitive outputs masked automatically
 * 🔌 plug-and-play with [dflook/terraform-github-actions][dflook]
@@ -69,7 +69,7 @@ jobs:
           title: My Stack Outputs
 ```
 
-Push to `main` and let it run once — this creates the `gh-pages` branch.
+Push to `main` and let it run once. This creates the `gh-pages` branch.
 
 ### 2. Enable GitHub Pages for the branch
 
@@ -85,7 +85,7 @@ Expected result:
 
 - Each output rendered as a card: maps as key/value tables, lists of
   objects as columnar tables.
-- One copy button per row — nested values copy as pretty JSON.
+- One copy button per row; nested values copy as pretty JSON.
 - A filter box that matches names, keys, and values.
 - Sensitive outputs masked.
 
@@ -95,7 +95,7 @@ That's it. Every push regenerates and republishes the page.
 
 ### Publish multiple workspaces, accounts, or tenants
 
-Use the `workspaces` input — one `name=path` pair per line. Each workspace
+Use the `workspaces` input, one `name=path` pair per line. Each workspace
 gets its own page under `/<name>/`, plus a landing page linking them all:
 
 ```yaml
@@ -112,7 +112,7 @@ gets its own page under `/<name>/`, plus a landing page linking them all:
 
 Different applies for different tenants usually run in different workflows,
 at different times. That's fine: in `workspaces` mode, each deploy only
-overwrites the workspaces it names and rebuilds the landing page — everything
+overwrites the workspaces it names and rebuilds the landing page; everything
 else already on the site is preserved. So the workflow that applies `prod-eu`
 just publishes `prod-eu`:
 
@@ -142,11 +142,11 @@ concurrency:
 
 ### Show output descriptions on the page (OpenTofu only)
 
-Tofu drops the `description` argument from `output -json`, but OpenTofu
-≥ 1.10 can extract it straight from your module source with
-`tofu show -json -module=<dir>` — no init, state, or providers needed. Point
-`module-dir` at your root module and descriptions appear under each output
-name (and become filterable):
+Tofu drops the `description` argument from `output -json`, but
+`tofu show -json -module=<dir>` can extract it straight from your module
+source with no init, state, or providers needed. Point `module-dir` at your
+root module and descriptions appear under each output name (and become
+filterable):
 
 ```yaml
       - uses: lowlydba/tofu-garnish@v1
@@ -156,11 +156,9 @@ name (and become filterable):
 ```
 
 > [!NOTE]
-> **OpenTofu only.** This requires `tofu` ≥ 1.10 on the runner's PATH.
-> Terraform's `show` command has no configuration mode, so `module-dir`
-> will not work with Terraform — omit it and the page simply renders
-> without descriptions. tofu-garnish is a Tofu-focused project; Terraform
-> compatibility is best-effort for everything else. YMMV.
+> Requires `tofu` ≥ 1.10 on the runner's PATH. Terraform's `show` command
+> has no configuration mode; omit `module-dir` and the page simply renders
+> without descriptions. YMMV.
 
 ### Use it without dflook actions
 
@@ -183,7 +181,7 @@ Sensitive outputs are automatically masked on the page (see
 ### Pass outputs inline instead of a file
 
 Any `dflook/terraform-output` step's outputs can be passed straight through
-as JSON — complex values arrive as JSON-encoded strings and are unpacked
+as JSON; complex values arrive as JSON-encoded strings and are unpacked
 automatically:
 
 ```yaml
@@ -194,9 +192,9 @@ automatically:
 
 ### Generate the HTML without deploying
 
-Set `deploy: "false"` and do whatever you like with the site directory —
+Set `deploy: "false"` and do whatever you like with the site directory:
 upload it elsewhere, attach it as an artifact, or serve it from another
-host:
+host.
 
 ```yaml
       - uses: lowlydba/tofu-garnish@v1
@@ -213,7 +211,7 @@ host:
 
 ### Run the generator locally
 
-The generator is a single stdlib-only Python script — no dependencies to
+The generator is a single stdlib-only Python script with no dependencies to
 install:
 
 ```console
@@ -242,10 +240,10 @@ the demo workflow publishes them to this repo's Pages.
 
 | Input          | Required | Default             | Description                                                                                                                                    |
 | -------------- | -------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `outputs-file` | no*      | —                   | Path to a JSON outputs file: the `json_output_path` file from `dflook/terraform-output`, or the output of `tofu output -json`.                   |
-| `outputs`      | no*      | —                   | Inline JSON string of outputs, e.g. `toJson(steps.<id>.outputs)` from a `dflook/terraform-output` step. Ignored if `outputs-file` is set.        |
-| `workspaces`   | no*      | —                   | Multiline `name=path` pairs for multi-workspace sites. Only the named workspaces are overwritten on deploy. Takes precedence over other inputs.  |
-| `module-dir`   | no       | —                   | **OpenTofu ≥ 1.10 only.** Root module directory; descriptions are extracted with `tofu show -json -module` and rendered on the page.             |
+| `outputs-file` | no*      | none                | Path to a JSON outputs file: the `json_output_path` file from `dflook/terraform-output`, or the output of `tofu output -json`.                   |
+| `outputs`      | no*      | none                | Inline JSON string of outputs, e.g. `toJson(steps.<id>.outputs)` from a `dflook/terraform-output` step. Ignored if `outputs-file` is set.        |
+| `workspaces`   | no*      | none                | Multiline `name=path` pairs for multi-workspace sites. Only the named workspaces are overwritten on deploy. Takes precedence over other inputs.  |
+| `module-dir`   | no       | none                | **OpenTofu ≥ 1.10 only.** Root module directory; descriptions are extracted with `tofu show -json -module` and rendered on the page.             |
 | `title`        | no       | `Tofu Outputs`      | Title shown on the generated page(s).                                                                                                            |
 | `output-dir`   | no       | `tofu-garnish-site` | Where the site is written when `deploy` is `"false"`.                                                                                            |
 | `deploy`       | no       | `"true"`            | Commit the site to the Pages branch. Set `"false"` to only generate HTML.                                                                        |
@@ -266,12 +264,12 @@ provided; the action fails if all are empty.
 
 Format detection is automatic:
 
-1. **`tofu output -json` / `terraform output -json`** — each output wrapped
+1. **`tofu output -json` / `terraform output -json`**: each output wrapped
    in `{"value": …, "type": …, "sensitive": …}`. Sensitive outputs are
    masked.
-2. **Plain map** — `{"name": value, …}`, as written by the
+2. **Plain map**: `{"name": value, …}`, as written by the
    `json_output_path` file from `dflook/terraform-output`.
-3. **String map** — `{"name": "value-or-JSON-string", …}`, as produced by
+3. **String map**: `{"name": "value-or-JSON-string", …}`, as produced by
    `toJson(steps.<id>.outputs)`. Strings that look like JSON arrays/objects
    are decoded; primitive strings are left untouched.
 
@@ -331,8 +329,8 @@ wrappers, nested objects become walls of braces, and nothing is scannable.
 tofu-garnish flattens that into structure-aware HTML: maps become key/value
 tables, lists of similar objects become columnar tables (one row per subnet,
 one column per attribute), and every top-level row gets a single copy button
-— plain text for scalars, pretty JSON for anything nested. It's
-deliberately KISS — self-contained HTML files, no framework, no build
+(plain text for scalars, pretty JSON for anything nested). It's
+deliberately KISS: self-contained HTML files, no framework, no build
 step, dark-mode via `prefers-color-scheme`, and a few lines of vanilla JS
 for filtering and copying.
 
@@ -342,15 +340,15 @@ Artifact-based Pages deployments are atomic: every deploy replaces the whole
 site. That forces every apply workflow to gather *all* workspaces' outputs
 (matrix fan-in) even when only one tenant changed. Committing to a Pages
 branch instead makes updates incremental: the action writes only the files
-for the workspaces you named (via the Git Data API's `base_tree` — no
-clone, no git credential juggling) and everything else on the branch is
+for the workspaces you named (via the Git Data API's `base_tree`, with no
+clone and no git credential juggling) and everything else on the branch is
 preserved. Push races between concurrent tenant deploys are retried
 against the fresh branch tip.
 
 ### Why "OpenTofu only" for descriptions?
 
 The `description` argument on `output` blocks never makes it into
-`output -json` or state — it exists only in configuration. OpenTofu 1.10
+`output -json` or state; it exists only in configuration. OpenTofu 1.10
 added configuration inspection to `show` (`-config` and `-module=DIR`
 modes); `-module` even works as a pure static parse, with no init, state,
 or providers. Terraform has no equivalent, and parsing HCL ourselves would
@@ -360,7 +358,7 @@ follows the Tofu toolchain.
 ### <a name="sensitive-values"></a>How are sensitive values handled?
 
 When the input is in `output -json` format, any output flagged
-`"sensitive": true` is rendered as a masked placeholder — the value never
+`"sensitive": true` is rendered as a masked placeholder; the value never
 reaches the HTML, the copy buttons, or the filter index. **Caveat:** the
 other two input formats carry no sensitivity metadata, so tofu-garnish
 cannot know what to mask; and either way, your Pages site is as public as
@@ -368,7 +366,7 @@ your repo. Don't publish outputs you wouldn't commit to the README.
 
 ### Security posture
 
-The whole action is two stdlib-only Python scripts — no third-party actions,
+The whole action is two stdlib-only Python scripts: no third-party actions,
 no npm, no shell logic beyond one `python3` invocation. All user-controlled
 values are passed through environment variables (never interpolated into
 shell), all rendered content is HTML-escaped, and the token is only sent as
@@ -383,10 +381,6 @@ $ python -m pytest --cov      # tests + coverage gate
 $ ruff check . && ruff format --check .
 $ zizmor --persona pedantic . # security audit
 ```
-
-## License
-
-[MIT](LICENSE)
 
 [dflook]: https://github.com/dflook/terraform-github-actions
 [zizmor]: https://docs.zizmor.sh
