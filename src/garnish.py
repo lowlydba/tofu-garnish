@@ -351,7 +351,7 @@ def _document(title: str, header: str, main: str, script: str = "") -> str:
 {header}</header>
 <main>
 {main}</main>
-<footer>Served with \U0001F49A by \U0001F33F tofu-garnish.</footer>
+<footer>Served with \U0001f49a by \U0001f33f tofu-garnish.</footer>
 {script_tag}</body>
 </html>
 """
