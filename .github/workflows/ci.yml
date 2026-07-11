@@ -170,6 +170,23 @@ jobs:
             tofu -chdir="examples/$ws" output -json > "$ws-outputs.json"
           done
 
+      - name: Verify fixture matches real tofu output (drift guard)
+        run: |
+          python3 - <<'EOF'
+          import json
+          real = json.load(open("demo-outputs.json"))
+          fixture = json.load(open("tests/fixtures/tofu_output_json.json"))
+          assert set(real) == set(fixture), (
+              f"output names drifted: {set(real) ^ set(fixture)}"
+          )
+          for name, meta in fixture.items():
+              for key in ("value", "sensitive"):
+                  assert real[name][key] == meta[key], (
+                      f"{name}.{key} drifted: {real[name][key]!r} != {meta[key]!r}"
+                  )
+          print(f"fixture matches real tofu output ({len(real)} outputs)")
+          EOF
+
       - name: Run action on real tofu output (prod workspace)
         uses: ./
         with:
