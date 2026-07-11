@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.ruff_cache/
+site/
+tofu-garnish-site/
+.venv/
+
+# OpenTofu local state from example configs
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*-outputs.json

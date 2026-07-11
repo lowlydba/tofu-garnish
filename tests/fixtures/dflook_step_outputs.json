@@ -1,0 +1,7 @@
+{
+  "service_hostname": "example.com",
+  "listener_port": "443",
+  "is_production": "true",
+  "queue_arns": "[\"arn:aws:sqs:us-east-1:123456789012:orders\", \"arn:aws:sqs:us-east-1:123456789012:payments\"]",
+  "vpc": "{\"cidr_block\": \"10.0.0.0/16\", \"id\": \"vpc-01463b6b84e1454ce\", \"tags\": {\"Environment\": \"prod\"}}"
+}

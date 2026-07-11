@@ -1,0 +1,98 @@
+name: tofu-garnish
+description: >-
+  Generate a simple static HTML page from Tofu/Terraform outputs and publish
+  it to a GitHub Pages branch. Plug-and-play with
+  dflook/terraform-github-actions. Supports incremental multi-workspace
+  updates without clobbering other workspaces.
+author: lowlydba
+branding:
+  icon: layout
+  color: green
+
+inputs:
+  outputs-file:
+    description: >-
+      Path to a JSON file of Tofu/Terraform outputs. Accepts the file from the
+      `json_output_path` output of dflook/terraform-output and the output of
+      `tofu output -json` / `terraform output -json`.
+    required: false
+    default: ""
+  outputs:
+    description: >-
+      Inline JSON string of outputs. Use "toJson(steps.<id>.outputs)" in an
+      expression on a dflook/terraform-output step. Ignored when outputs-file
+      is set.
+    required: false
+    default: ""
+  workspaces:
+    description: >-
+      Multiline list of "name=path" pairs, one per line, for publishing
+      several discrete output sets (workspaces, accounts, tenants) as one
+      site. Each workspace gets its own page under /<name>/ plus a landing
+      page linking them. When deploying, only the listed workspaces are
+      overwritten; other workspaces already on the site are preserved.
+      Takes precedence over outputs-file and outputs.
+    required: false
+    default: ""
+  module-dir:
+    description: >-
+      Path to the OpenTofu root module directory. When set, output
+      descriptions are extracted from the module source with
+      `tofu show -json -module=<dir>` and shown on the page. OpenTofu only:
+      requires tofu >= 1.10 on PATH (Terraform's show command has no
+      configuration mode). Applies to all listed workspaces.
+    required: false
+    default: ""
+  title:
+    description: Title for the generated page.
+    required: false
+    default: Tofu Outputs
+  output-dir:
+    description: >-
+      Directory the generated site is written to. Only used when deploy is
+      "false"; deploys generate into a temporary directory.
+    required: false
+    default: tofu-garnish-site
+  deploy:
+    description: >-
+      Whether to commit the site to the Pages branch. Set to "false" to only
+      generate the HTML into output-dir.
+    required: false
+    default: "true"
+  pages-branch:
+    description: Branch GitHub Pages serves from. Created if it doesn't exist.
+    required: false
+    default: gh-pages
+  github-token:
+    description: >-
+      Token used to read and push the Pages branch. Needs contents write
+      access to this repository.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  page-url:
+    description: URL of the GitHub Pages site (empty when deploy is false).
+    value: ${{ steps.garnish.outputs.page-url }}
+  site-dir:
+    description: Directory containing the generated index.html.
+    value: ${{ steps.garnish.outputs.site-dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Generate and publish outputs page
+      id: garnish
+      shell: bash
+      env:
+        GARNISH_OUTPUTS: ${{ inputs.outputs }}
+        GARNISH_OUTPUTS_FILE: ${{ inputs.outputs-file }}
+        GARNISH_WORKSPACES: ${{ inputs.workspaces }}
+        GARNISH_MODULE_DIR: ${{ inputs.module-dir }}
+        GARNISH_TITLE: ${{ inputs.title }}
+        GARNISH_OUTPUT_DIR: ${{ inputs.output-dir }}
+        GARNISH_DEPLOY: ${{ inputs.deploy }}
+        GARNISH_TOKEN: ${{ inputs.github-token }}
+        PAGES_BRANCH: ${{ inputs.pages-branch }}
+        GARNISH_ACTION_PATH: ${{ github.action_path }}
+      run: python3 "$GARNISH_ACTION_PATH/src/publish.py"
