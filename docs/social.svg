@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="tofu-garnish: Tofu outputs, plated as a static page">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#15211a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+
+  <!-- tofu cube -->
+  <g transform="translate(150,190) scale(1.8)">
+    <polygon points="0,30 55,0 110,30 55,60" fill="#fdfaf1"/>
+    <polygon points="0,30 55,60 55,120 0,90" fill="#e8e2cf"/>
+    <polygon points="110,30 55,60 55,120 110,90" fill="#d5cdb4"/>
+    <!-- garnish -->
+    <g transform="translate(38,4)">
+      <path d="M17 12 C8 4 2 8 0 16 C8 20 15 18 17 12 Z" fill="#3fb950"/>
+      <path d="M20 10 C24 0 34 0 40 6 C36 14 26 16 20 10 Z" fill="#2ea043"/>
+      <circle cx="19" cy="13" r="2.5" fill="#f85149"/>
+    </g>
+  </g>
+
+  <!-- arrow -->
+  <g stroke="#3fb950" stroke-width="7" fill="none" stroke-linecap="round">
+    <path d="M420 300 h110"/>
+    <path d="M508 276 l24 24 l-24 24"/>
+  </g>
+
+  <!-- browser window -->
+  <g transform="translate(590,170) scale(1.8)">
+    <rect width="230" height="144" rx="8" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <rect width="230" height="26" rx="8" fill="#21262d"/>
+    <circle cx="16" cy="13" r="4" fill="#f85149"/>
+    <circle cx="30" cy="13" r="4" fill="#d29922"/>
+    <circle cx="44" cy="13" r="4" fill="#3fb950"/>
+    <!-- rendered "outputs" -->
+    <rect x="14" y="38" width="90" height="9" rx="3" fill="#3fb950"/>
+    <rect x="14" y="53" width="200" height="7" rx="3" fill="#8b949e"/>
+    <rect x="14" y="72" width="70" height="9" rx="3" fill="#3fb950"/>
+    <rect x="14" y="87" width="96" height="7" rx="3" fill="#30363d"/>
+    <rect x="116" y="87" width="98" height="7" rx="3" fill="#8b949e"/>
+    <rect x="14" y="99" width="96" height="7" rx="3" fill="#30363d"/>
+    <rect x="116" y="99" width="98" height="7" rx="3" fill="#8b949e"/>
+    <rect x="14" y="118" width="110" height="9" rx="3" fill="#3fb950"/>
+    <rect x="14" y="133" width="160" height="7" rx="3" fill="#8b949e"/>
+  </g>
+
+  <!-- wordmark -->
+  <g font-family="ui-monospace, 'Cascadia Code', Consolas, monospace" text-anchor="middle">
+    <text x="640" y="530" font-size="64" font-weight="700" fill="#fdfaf1">tofu-<tspan fill="#3fb950">garnish</tspan></text>
+    <text x="640" y="580" font-size="26" fill="#8b949e">outputs, plated.</text>
+  </g>
+</svg>
