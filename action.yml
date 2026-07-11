@@ -1,9 +1,7 @@
 name: tofu-garnish
 description: >-
   Generate a simple static HTML page from Tofu/Terraform outputs and publish
-  it to a GitHub Pages branch. Plug-and-play with
-  dflook/terraform-github-actions. Supports incremental multi-workspace
-  updates without clobbering other workspaces.
+  it to GitHub Pages.
 author: lowlydba
 branding:
   icon: layout
