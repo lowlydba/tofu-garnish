@@ -220,3 +220,15 @@ jobs:
         uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
         with:
           persona: pedantic
+
+  are-we-good:
+    name: Are we good?
+    runs-on: ubuntu-latest
+    needs: [lint, test, action-test, tofu-e2e, zizmor]
+    if: always()
+    permissions: {}
+    steps:
+      - name: Roll up job statuses
+        uses: lowlydba/are-we-good@4b62765391e357e78d0572113ab8b1c7d6b8d12a # v1.0.4
+        with:
+          jobs: ${{ toJSON(needs) }}

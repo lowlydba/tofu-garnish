@@ -35,6 +35,7 @@ class Output:
     name: str
     value: object
     sensitive: bool = False
+    description: str = ""
 
 
 @dataclass
@@ -75,6 +76,31 @@ def _maybe_decode_json_string(value: object) -> object:
     return value
 
 
+_DESC_SUFFIXES = ("_desc", "_description")
+
+
+def _fold_descriptions(outputs: list[Output]) -> list[Output]:
+    """Fold ``<name>_desc`` / ``<name>_description`` outputs into ``<name>``.
+
+    Tofu/Terraform drops the ``description`` argument from
+    ``output -json``, so a sibling-output naming convention is the only way
+    to carry descriptions through. A description output is folded only when
+    its base output exists, its value is a string, and it isn't sensitive.
+    """
+    by_name = {o.name: o for o in outputs}
+    folded: set[str] = set()
+    for output in outputs:
+        for suffix in _DESC_SUFFIXES:
+            if not output.name.endswith(suffix):
+                continue
+            base = by_name.get(output.name[: -len(suffix)])
+            if base is not None and isinstance(output.value, str) and not output.sensitive:
+                base.description = output.value
+                folded.add(output.name)
+                break
+    return [o for o in outputs if o.name not in folded]
+
+
 def parse_outputs(text: str) -> list[Output]:
     """Parse raw JSON text into a normalized, name-sorted list of outputs."""
     try:
@@ -101,7 +127,7 @@ def parse_outputs(text: str) -> list[Output]:
             outputs.append(Output(name=name, value=_maybe_decode_json_string(value)))
 
     outputs.sort(key=lambda o: o.name.lower())
-    return outputs
+    return _fold_descriptions(outputs)
 
 
 # ---------------------------------------------------------------------------
@@ -231,11 +257,14 @@ def _render_output(output: Output) -> str:
     else:
         body = _render_value(output.value)
         search = " ".join([output.name, *_search_terms(output.value)]).lower()
+    if output.description:
+        search = f"{search} {output.description.lower()}"
+    desc = f'<p class="desc">{_esc(output.description)}</p>' if output.description else ""
     return (
         f'<section class="output" id="{_esc(output.name)}" '
         f'data-name="{_esc(output.name.lower())}" data-search="{_esc(search)}">'
         f'<h2><a href="#{_esc(output.name)}">{_esc(output.name)}</a></h2>'
-        f"{body}</section>"
+        f"{desc}{body}</section>"
     )
 
 
@@ -251,6 +280,7 @@ section.output { border: 1px solid var(--border); border-radius: 6px; padding: 0
 section.output h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
 section.output h2 a { color: var(--accent); text-decoration: none; }
 section.output h2 a:hover { text-decoration: underline; }
+.desc { color: var(--muted); font-size: 0.9rem; margin: -0.35rem 0 0.5rem; }
 table { border-collapse: collapse; width: 100%; margin: 0.25rem 0; }
 th, td { border: 1px solid var(--border); padding: 0.3rem 0.6rem; text-align: left; vertical-align: top; font-size: 0.9rem; }
 table.kv > tbody > tr > th { width: 30%; font-weight: 600; }

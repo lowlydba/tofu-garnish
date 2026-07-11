@@ -16,6 +16,13 @@ output "cluster_endpoint" {
   value       = "https://k8s.example.com:6443"
 }
 
+# Tofu drops `description` from `output -json`, so tofu-garnish also
+# understands a sibling-output convention: `<name>_desc` is rendered as
+# the description of `<name>` instead of its own card.
+output "cluster_endpoint_desc" {
+  value = "Kubernetes API endpoint for the primary cluster"
+}
+
 output "instance_count" {
   description = "Number of app instances"
   value       = 3
