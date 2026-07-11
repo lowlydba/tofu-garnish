@@ -227,8 +227,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: read # zizmor-action reads workflow runs for auditing
-      security-events: write # zizmor-action uploads SARIF results
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -239,6 +237,10 @@ jobs:
         uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
         with:
           persona: pedantic
+          # Code scanning isn't enabled on this repo; report findings as
+          # workflow annotations instead of uploading SARIF.
+          advanced-security: "false"
+          annotations: "true"
 
   are-we-good:
     name: Are we good?
