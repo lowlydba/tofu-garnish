@@ -1,0 +1,86 @@
+name: tofu-garnish
+description: >-
+  Generate a simple static HTML page from Tofu/Terraform outputs and deploy it
+  to GitHub Pages. Plug-and-play with dflook/terraform-github-actions.
+author: lowlydba
+branding:
+  icon: layout
+  color: green
+
+inputs:
+  outputs-file:
+    description: >-
+      Path to a JSON file of Tofu/Terraform outputs. Accepts the file from the
+      `json_output_path` output of dflook/terraform-output, or the output of
+      `tofu output -json` / `terraform output -json`.
+    required: false
+    default: ""
+  outputs:
+    description: >-
+      Inline JSON string of outputs. Use "toJson(steps.<id>.outputs)" in an
+      expression on a dflook/terraform-output step. Ignored when outputs-file
+      is set.
+    required: false
+    default: ""
+  title:
+    description: Title for the generated page.
+    required: false
+    default: Tofu Outputs
+  output-dir:
+    description: Directory the generated site is written to.
+    required: false
+    default: tofu-garnish-site
+  deploy:
+    description: >-
+      Whether to upload the site as a Pages artifact and deploy it to GitHub
+      Pages. Set to "false" to only generate the HTML.
+    required: false
+    default: "true"
+
+outputs:
+  page-url:
+    description: URL of the deployed GitHub Pages site (empty when deploy is false).
+    value: ${{ steps.deploy.outputs.page_url }}
+  site-dir:
+    description: Directory containing the generated index.html.
+    value: ${{ steps.generate.outputs.site-dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Generate HTML page
+      id: generate
+      shell: bash
+      env:
+        GARNISH_OUTPUTS: ${{ inputs.outputs }}
+        GARNISH_OUTPUTS_FILE: ${{ inputs.outputs-file }}
+        GARNISH_TITLE: ${{ inputs.title }}
+        GARNISH_OUTPUT_DIR: ${{ inputs.output-dir }}
+        GARNISH_SCRIPT: ${{ github.action_path }}/src/garnish.py
+      run: |
+        set -euo pipefail
+        if [ -n "$GARNISH_OUTPUTS_FILE" ]; then
+          python3 "$GARNISH_SCRIPT" \
+            --input "$GARNISH_OUTPUTS_FILE" \
+            --output-dir "$GARNISH_OUTPUT_DIR" \
+            --title "$GARNISH_TITLE"
+        elif [ -n "$GARNISH_OUTPUTS" ]; then
+          printf '%s' "$GARNISH_OUTPUTS" | python3 "$GARNISH_SCRIPT" \
+            --output-dir "$GARNISH_OUTPUT_DIR" \
+            --title "$GARNISH_TITLE"
+        else
+          echo "::error::one of 'outputs-file' or 'outputs' must be provided" >&2
+          exit 1
+        fi
+        echo "site-dir=$GARNISH_OUTPUT_DIR" >> "$GITHUB_OUTPUT"
+
+    - name: Upload Pages artifact
+      if: ${{ inputs.deploy == 'true' }}
+      uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+      with:
+        path: ${{ steps.generate.outputs.site-dir }}
+
+    - name: Deploy to GitHub Pages
+      if: ${{ inputs.deploy == 'true' }}
+      id: deploy
+      uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

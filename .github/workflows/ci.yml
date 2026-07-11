@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+
+      - name: Install ruff
+        run: python -m pip install --quiet ruff
+
+      - name: Ruff check
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.11", "3.13"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install test dependencies
+        run: python -m pip install --quiet pytest pytest-cov
+
+      - name: Run tests with coverage
+        run: python -m pytest --cov --cov-fail-under=95
+
+  action-test:
+    name: Integration test (action)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Run action with outputs-file input
+        uses: ./
+        with:
+          outputs-file: tests/fixtures/tofu_output_json.json
+          title: Integration Test
+          output-dir: it-site-file
+          deploy: "false"
+
+      - name: Run action with inline outputs input
+        uses: ./
+        with:
+          outputs: '{"service_hostname": "example.com", "vpc": "{\"id\": \"vpc-123\"}"}'
+          title: Inline Test
+          output-dir: it-site-inline
+          deploy: "false"
+
+      - name: Verify generated pages
+        run: |
+          set -euo pipefail
+          grep -q "<title>Integration Test</title>" it-site-file/index.html
+          grep -q "vpc-01463b6b84e1454ce" it-site-file/index.html
+          if grep -q "s3cr3t-hunter2" it-site-file/index.html; then
+            echo "::error::sensitive value leaked into generated page"
+            exit 1
+          fi
+          grep -q "<title>Inline Test</title>" it-site-inline/index.html
+          grep -q "vpc-123" it-site-inline/index.html
+          echo "Integration checks passed."
+
+      - name: Verify action fails without inputs
+        id: no-inputs
+        continue-on-error: true
+        uses: ./
+        with:
+          deploy: "false"
+
+      - name: Assert missing-input failure
+        env:
+          NO_INPUTS_OUTCOME: ${{ steps.no-inputs.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "$NO_INPUTS_OUTCOME" != "failure" ]; then
+            echo "::error::action should fail when neither input is provided"
+            exit 1
+          fi
+
+  zizmor:
+    name: Security audit (zizmor)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read # zizmor-action reads workflow runs for auditing
+      security-events: write # zizmor-action uploads SARIF results
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor (pedantic)
+        uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
+        with:
+          persona: pedantic

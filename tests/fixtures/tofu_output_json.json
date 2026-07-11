@@ -1,0 +1,48 @@
+{
+  "cluster_endpoint": {
+    "sensitive": false,
+    "type": "string",
+    "value": "https://k8s.example.com:6443"
+  },
+  "database_password": {
+    "sensitive": true,
+    "type": "string",
+    "value": "s3cr3t-hunter2"
+  },
+  "instance_count": {
+    "sensitive": false,
+    "type": "number",
+    "value": 3
+  },
+  "is_production": {
+    "sensitive": false,
+    "type": "bool",
+    "value": true
+  },
+  "queue_arns": {
+    "sensitive": false,
+    "type": ["list", "string"],
+    "value": [
+      "arn:aws:sqs:us-east-1:123456789012:orders",
+      "arn:aws:sqs:us-east-1:123456789012:payments"
+    ]
+  },
+  "subnets": {
+    "sensitive": false,
+    "type": ["list", ["object", { "az": "string", "cidr": "string", "id": "string" }]],
+    "value": [
+      { "az": "us-east-1a", "cidr": "10.0.0.0/24", "id": "subnet-053008016a2c1768c" },
+      { "az": "us-east-1b", "cidr": "10.0.1.0/24", "id": "subnet-07d4ce437c43eba2f" },
+      { "az": "us-east-1c", "cidr": "10.0.2.0/24", "id": "subnet-0a5f8c3a20023b8c0" }
+    ]
+  },
+  "vpc": {
+    "sensitive": false,
+    "type": ["object", { "cidr_block": "string", "id": "string", "tags": ["map", "string"] }],
+    "value": {
+      "cidr_block": "10.0.0.0/16",
+      "id": "vpc-01463b6b84e1454ce",
+      "tags": { "Environment": "prod", "Team": "platform" }
+    }
+  }
+}
