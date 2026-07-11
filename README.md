@@ -16,6 +16,8 @@ Turn OpenTofu/Terraform outputs into a simple, readable static page on your
 repo's GitHub Pages, so engineers can find that ARN without running `tofu
 output` or spelunking through state.
 
+**[👉 See it in action: live demo site][demo]**
+
 * 🔒 dependency-free (two stdlib-only Python scripts, no third-party actions)
 * 🍽️ structure-aware HTML: tables, not JSON walls
 * 🏢 discrete multi-workspace publishing without clobbering
@@ -383,4 +385,5 @@ $ zizmor --persona pedantic . # security audit
 ```
 
 [dflook]: https://github.com/dflook/terraform-github-actions
+[demo]: https://lowlydba.github.io/tofu-garnish/
 [zizmor]: https://docs.zizmor.sh
