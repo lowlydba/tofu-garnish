@@ -298,10 +298,10 @@ Artifact-based Pages deployments are atomic: every deploy replaces the whole
 site. That forces every apply workflow to gather *all* workspaces' outputs
 (matrix fan-in) even when only one tenant changed. Committing to a Pages
 branch instead makes updates incremental: the action writes only the files
-for the workspaces you named (via the Git Data API's `base_tree`, through
-`actions/github-script` — no clone, no credential juggling) and everything
-else on the branch is preserved. Push races between concurrent tenant
-deploys are retried against the fresh branch tip.
+for the workspaces you named (via the Git Data API's `base_tree` — no
+clone, no git credential juggling) and everything else on the branch is
+preserved. Push races between concurrent tenant deploys are retried
+against the fresh branch tip.
 
 ### <a name="sensitive-values"></a>How are sensitive values handled?
 
@@ -314,11 +314,11 @@ your repo. Don't publish outputs you wouldn't commit to the README.
 
 ### Security posture
 
-The action is a composite of a stdlib-only Python script plus
-`actions/github-script` pinned to a full commit SHA. All user-controlled
+The whole action is two stdlib-only Python scripts — no third-party actions,
+no npm, no shell logic beyond one `python3` invocation. All user-controlled
 values are passed through environment variables (never interpolated into
-shell), all rendered content is HTML-escaped, and the token is only ever
-handled by github-script's Octokit client. CI runs [zizmor][zizmor] with the
+shell), all rendered content is HTML-escaped, and the token is only sent as
+an Authorization header to the GitHub API. CI runs [zizmor][zizmor] with the
 **pedantic** persona over every workflow and the action itself.
 
 ## Development

@@ -41,7 +41,7 @@ inputs:
   output-dir:
     description: >-
       Directory the generated site is written to. Only used when deploy is
-      "false"; deploys generate directly into a clone of the Pages branch.
+      "false"; deploys generate into a temporary directory.
     required: false
     default: tofu-garnish-site
   deploy:
@@ -64,17 +64,16 @@ inputs:
 outputs:
   page-url:
     description: URL of the GitHub Pages site (empty when deploy is false).
-    value: ${{ steps.deploy.outputs.page-url }}
+    value: ${{ steps.garnish.outputs.page-url }}
   site-dir:
     description: Directory containing the generated index.html.
-    value: ${{ steps.generate.outputs.site-dir || steps.deploy.outputs.site-dir }}
+    value: ${{ steps.garnish.outputs.site-dir }}
 
 runs:
   using: composite
   steps:
-    - name: Generate HTML page
-      if: ${{ inputs.deploy != 'true' }}
-      id: generate
+    - name: Generate and publish outputs page
+      id: garnish
       shell: bash
       env:
         GARNISH_OUTPUTS: ${{ inputs.outputs }}
@@ -82,27 +81,8 @@ runs:
         GARNISH_WORKSPACES: ${{ inputs.workspaces }}
         GARNISH_TITLE: ${{ inputs.title }}
         GARNISH_OUTPUT_DIR: ${{ inputs.output-dir }}
-        GARNISH_SCRIPT: ${{ github.action_path }}/src/garnish.py
-        GARNISH_ACTION_PATH: ${{ github.action_path }}
-      run: |
-        set -euo pipefail
-        bash "$GARNISH_ACTION_PATH/src/generate.sh" "$GARNISH_OUTPUT_DIR"
-        echo "site-dir=$GARNISH_OUTPUT_DIR" >> "$GITHUB_OUTPUT"
-
-    - name: Publish to Pages branch
-      if: ${{ inputs.deploy == 'true' }}
-      id: deploy
-      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-      env:
-        GARNISH_OUTPUTS: ${{ inputs.outputs }}
-        GARNISH_OUTPUTS_FILE: ${{ inputs.outputs-file }}
-        GARNISH_WORKSPACES: ${{ inputs.workspaces }}
-        GARNISH_TITLE: ${{ inputs.title }}
-        GARNISH_SCRIPT: ${{ github.action_path }}/src/garnish.py
-        GARNISH_ACTION_PATH: ${{ github.action_path }}
+        GARNISH_DEPLOY: ${{ inputs.deploy }}
+        GARNISH_TOKEN: ${{ inputs.github-token }}
         PAGES_BRANCH: ${{ inputs.pages-branch }}
-      with:
-        github-token: ${{ inputs.github-token }}
-        script: |
-          const publish = require(`${process.env.GARNISH_ACTION_PATH}/src/publish.js`);
-          await publish({ github, context, core, exec });
+        GARNISH_ACTION_PATH: ${{ github.action_path }}
+      run: python3 "$GARNISH_ACTION_PATH/src/publish.py"

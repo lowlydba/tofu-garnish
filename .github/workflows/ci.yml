@@ -37,9 +37,6 @@ jobs:
       - name: Ruff format check
         run: ruff format --check .
 
-      - name: Syntax-check publish script
-        run: node --check src/publish.js
-
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
