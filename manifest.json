@@ -1,0 +1,17 @@
+{
+  "generator": "tofu-garnish",
+  "version": "1.0.0",
+  "title": "tofu-garnish demo",
+  "workspaces": {
+    "prod": {
+      "name": "prod",
+      "outputs": 7,
+      "updated": "2026-07-11 17:21 UTC"
+    },
+    "staging": {
+      "name": "staging",
+      "outputs": 3,
+      "updated": "2026-07-11 17:21 UTC"
+    }
+  }
+}

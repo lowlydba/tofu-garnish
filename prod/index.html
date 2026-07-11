@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="tofu-garnish 1.0.0">
+<title>tofu-garnish demo · prod</title>
+<style>
+:root { color-scheme: light dark; --border: #d0d7de; --muted: #656d76; --accent: #1a7f37; }
+@media (prefers-color-scheme: dark) { :root { --border: #30363d; --muted: #8b949e; --accent: #3fb950; } }
+* { box-sizing: border-box; }
+body { font-family: system-ui, sans-serif; max-width: 60rem; margin: 0 auto; padding: 1rem 1.5rem 4rem; line-height: 1.5; }
+header h1 { margin-bottom: 0.25rem; }
+header p { color: var(--muted); margin-top: 0; }
+#filter { width: 100%; padding: 0.5rem 0.75rem; font-size: 1rem; border: 1px solid var(--border); border-radius: 6px; margin: 0.5rem 0 1rem; background: transparent; color: inherit; }
+section.output { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; margin: 0.75rem 0; overflow-x: auto; }
+section.output h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
+section.output h2 a { color: var(--accent); text-decoration: none; }
+section.output h2 a:hover { text-decoration: underline; }
+.desc { color: var(--muted); font-size: 0.9rem; margin: -0.35rem 0 0.5rem; }
+table { border-collapse: collapse; width: 100%; margin: 0.25rem 0; }
+th, td { border: 1px solid var(--border); padding: 0.3rem 0.6rem; text-align: left; vertical-align: top; font-size: 0.9rem; }
+table.kv > tbody > tr > th { width: 30%; font-weight: 600; }
+td.act, th.act { width: 1%; white-space: nowrap; text-align: center; }
+code { font-family: ui-monospace, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
+ol.seq { margin: 0.25rem 0; padding-left: 1.5rem; }
+.scalar { display: inline-flex; align-items: baseline; gap: 0.5rem; max-width: 100%; }
+button.copy { font-size: 0.7rem; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; padding: 0.1rem 0.4rem; }
+button.copy:hover { color: inherit; }
+.empty, .null { color: var(--muted); font-style: italic; }
+.sensitive { color: var(--muted); }
+footer { margin-top: 2rem; color: var(--muted); font-size: 0.85rem; }
+.back { margin: 0 0 0.25rem; font-size: 0.9rem; }
+.back a, .ws h2 a { color: var(--accent); text-decoration: none; }
+.back a:hover, .ws h2 a:hover { text-decoration: underline; }
+section.ws p { color: var(--muted); margin: 0; }
+.no-match { color: var(--muted); font-style: italic; display: none; }
+</style>
+</head>
+<body>
+<header>
+<p class="back"><a href="../">← all workspaces</a></p><h1>tofu-garnish demo · prod</h1>
+<p>7 outputs · generated 2026-07-11 17:21 UTC</p>
+<input id="filter" type="search" placeholder="Filter outputs by name or value…" aria-label="Filter outputs by name or value">
+</header>
+<main>
+<section class="output" id="cluster_endpoint" data-name="cluster_endpoint" data-search="cluster_endpoint https://k8s.example.com:6443 kubernetes api endpoint"><h2><a href="#cluster_endpoint">cluster_endpoint</a></h2><p class="desc">Kubernetes API endpoint</p><span class="scalar"><code>https://k8s.example.com:6443</code><button class="copy" type="button" title="Copy value" data-raw="https://k8s.example.com:6443">copy</button></span></section><section class="output" id="database_password" data-name="database_password" data-search="database_password a sensitive value that must be masked on the page"><h2><a href="#database_password">database_password</a></h2><p class="desc">A sensitive value that must be masked on the page</p><span class="sensitive">•••••••• <em>(sensitive)</em></span></section><section class="output" id="instance_count" data-name="instance_count" data-search="instance_count 3 number of app instances"><h2><a href="#instance_count">instance_count</a></h2><p class="desc">Number of app instances</p><span class="scalar"><code>3</code><button class="copy" type="button" title="Copy value" data-raw="3">copy</button></span></section><section class="output" id="is_production" data-name="is_production" data-search="is_production true whether this stack is production"><h2><a href="#is_production">is_production</a></h2><p class="desc">Whether this stack is production</p><span class="scalar"><code>true</code><button class="copy" type="button" title="Copy value" data-raw="true">copy</button></span></section><section class="output" id="queue_arns" data-name="queue_arns" data-search="queue_arns arn:aws:sqs:us-east-1:123456789012:orders arn:aws:sqs:us-east-1:123456789012:payments sqs queue arns"><h2><a href="#queue_arns">queue_arns</a></h2><p class="desc">SQS queue ARNs</p><ol class="seq"><li><code>arn:aws:sqs:us-east-1:123456789012:orders</code> <button class="copy" type="button" title="Copy value" data-raw="arn:aws:sqs:us-east-1:123456789012:orders">copy</button></li><li><code>arn:aws:sqs:us-east-1:123456789012:payments</code> <button class="copy" type="button" title="Copy value" data-raw="arn:aws:sqs:us-east-1:123456789012:payments">copy</button></li></ol></section><section class="output" id="subnets" data-name="subnets" data-search="subnets az us-east-1a cidr 10.0.0.0/24 id subnet-053008016a2c1768c az us-east-1b cidr 10.0.1.0/24 id subnet-07d4ce437c43eba2f az us-east-1c cidr 10.0.2.0/24 id subnet-0a5f8c3a20023b8c0 vpc subnets"><h2><a href="#subnets">subnets</a></h2><p class="desc">VPC subnets</p><table class="grid"><thead><tr><th scope="col">az</th><th scope="col">cidr</th><th scope="col">id</th><th scope="col" class="act"></th></tr></thead><tbody><tr><td><code>us-east-1a</code></td><td><code>10.0.0.0/24</code></td><td><code>subnet-053008016a2c1768c</code></td><td class="act"><button class="copy" type="button" title="Copy value" data-raw="{
+  &quot;az&quot;: &quot;us-east-1a&quot;,
+  &quot;cidr&quot;: &quot;10.0.0.0/24&quot;,
+  &quot;id&quot;: &quot;subnet-053008016a2c1768c&quot;
+}">copy</button></td></tr><tr><td><code>us-east-1b</code></td><td><code>10.0.1.0/24</code></td><td><code>subnet-07d4ce437c43eba2f</code></td><td class="act"><button class="copy" type="button" title="Copy value" data-raw="{
+  &quot;az&quot;: &quot;us-east-1b&quot;,
+  &quot;cidr&quot;: &quot;10.0.1.0/24&quot;,
+  &quot;id&quot;: &quot;subnet-07d4ce437c43eba2f&quot;
+}">copy</button></td></tr><tr><td><code>us-east-1c</code></td><td><code>10.0.2.0/24</code></td><td><code>subnet-0a5f8c3a20023b8c0</code></td><td class="act"><button class="copy" type="button" title="Copy value" data-raw="{
+  &quot;az&quot;: &quot;us-east-1c&quot;,
+  &quot;cidr&quot;: &quot;10.0.2.0/24&quot;,
+  &quot;id&quot;: &quot;subnet-0a5f8c3a20023b8c0&quot;
+}">copy</button></td></tr></tbody></table></section><section class="output" id="vpc" data-name="vpc" data-search="vpc cidr_block 10.0.0.0/16 id vpc-01463b6b84e1454ce tags environment prod team platform vpc attributes"><h2><a href="#vpc">vpc</a></h2><p class="desc">VPC attributes</p><table class="kv"><tbody><tr><th scope="row">cidr_block</th><td><code>10.0.0.0/16</code></td><td class="act"><button class="copy" type="button" title="Copy value" data-raw="10.0.0.0/16">copy</button></td></tr><tr><th scope="row">id</th><td><code>vpc-01463b6b84e1454ce</code></td><td class="act"><button class="copy" type="button" title="Copy value" data-raw="vpc-01463b6b84e1454ce">copy</button></td></tr><tr><th scope="row">tags</th><td><table class="kv"><tbody><tr><th scope="row">Environment</th><td><code>prod</code></td></tr><tr><th scope="row">Team</th><td><code>platform</code></td></tr></tbody></table></td><td class="act"><button class="copy" type="button" title="Copy value" data-raw="{
+  &quot;Environment&quot;: &quot;prod&quot;,
+  &quot;Team&quot;: &quot;platform&quot;
+}">copy</button></td></tr></tbody></table></section>
+<p id="no-match" class="no-match">No outputs match the filter.</p>
+</main>
+<footer>Generated by <a href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
+<script>
+document.getElementById('filter').addEventListener('input', function () {
+  var q = this.value.trim().toLowerCase();
+  var any = false;
+  document.querySelectorAll('section.output').forEach(function (s) {
+    var show = !q || s.dataset.search.indexOf(q) !== -1;
+    s.style.display = show ? '' : 'none';
+    if (show) { any = true; }
+  });
+  document.getElementById('no-match').style.display = any ? 'none' : 'block';
+});
+document.addEventListener('click', function (e) {
+  if (!e.target.matches('button.copy')) { return; }
+  navigator.clipboard.writeText(e.target.dataset.raw).then(function () {
+    e.target.textContent = 'copied!';
+    setTimeout(function () { e.target.textContent = 'copy'; }, 1200);
+  });
+});
+</script>
+</body>
+</html>
