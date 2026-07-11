@@ -112,38 +112,57 @@ def _esc(value: object) -> str:
 
 
 def _render_scalar(value: object) -> str:
-    """Render a leaf value as copyable code."""
+    """Render a leaf value as code."""
     if value is None:
         return '<span class="null">null</span>'
     text = ("true" if value else "false") if isinstance(value, bool) else str(value)
-    return (
-        f'<span class="scalar"><code>{_esc(text)}</code>'
-        '<button class="copy" type="button" title="Copy value">copy</button></span>'
-    )
+    return f"<code>{_esc(text)}</code>"
 
 
 def _is_scalar(value: object) -> bool:
     return not isinstance(value, (dict, list))
 
 
+def _raw_text(value: object) -> str:
+    """Clipboard text for a value: plain text for scalars, pretty JSON otherwise."""
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if _is_scalar(value):
+        return str(value)
+    return json.dumps(value, indent=2)
+
+
+def _copy_button(value: object) -> str:
+    return (
+        '<button class="copy" type="button" title="Copy value" '
+        f'data-raw="{_esc(_raw_text(value))}">copy</button>'
+    )
+
+
 def _render_mapping(value: dict, depth: int) -> str:
     if not value:
         return '<span class="empty">(empty map)</span>'
-    rows = "".join(
-        f'<tr><th scope="row">{_esc(k)}</th><td>{_render_value(v, depth + 1)}</td></tr>'
-        for k, v in value.items()
-    )
-    return f'<table class="kv"><tbody>{rows}</tbody></table>'
+    rows = []
+    for k, v in value.items():
+        act = f'<td class="act">{_copy_button(v)}</td>' if depth == 0 else ""
+        rows.append(
+            f'<tr><th scope="row">{_esc(k)}</th><td>{_render_value(v, depth + 1)}</td>{act}</tr>'
+        )
+    return f'<table class="kv"><tbody>{"".join(rows)}</tbody></table>'
 
 
 def _render_uniform_list(value: list, depth: int) -> str:
-    """Render a list of mappings as a columnar table."""
+    """Render a list of mappings as a columnar table with one copy button per row."""
     columns: list[str] = []
     for item in value:
         for key in item:
             if key not in columns:
                 columns.append(key)
     head = "".join(f'<th scope="col">{_esc(c)}</th>' for c in columns)
+    if depth == 0:
+        head += '<th scope="col" class="act"></th>'
     body_rows = []
     for item in value:
         cells = "".join(
@@ -152,6 +171,8 @@ def _render_uniform_list(value: list, depth: int) -> str:
             else '<td><span class="empty">—</span></td>'
             for c in columns
         )
+        if depth == 0:
+            cells += f'<td class="act">{_copy_button(item)}</td>'
         body_rows.append(f"<tr>{cells}</tr>")
     return (
         '<table class="grid"><thead><tr>'
@@ -164,7 +185,12 @@ def _render_list(value: list, depth: int) -> str:
         return '<span class="empty">(empty list)</span>'
     if all(isinstance(item, dict) for item in value):
         return _render_uniform_list(value, depth)
-    items = "".join(f"<li>{_render_value(v, depth + 1)}</li>" for v in value)
+    items = "".join(
+        f"<li>{_render_value(v, depth + 1)}"
+        + (f" {_copy_button(v)}" if depth == 0 else "")
+        + "</li>"
+        for v in value
+    )
     return f'<ol class="seq">{items}</ol>'
 
 
@@ -179,6 +205,12 @@ def _render_value(value: object, depth: int = 0) -> str:
 def _render_output(output: Output) -> str:
     if output.sensitive:
         body = f'<span class="sensitive">{MASK} <em>(sensitive)</em></span>'
+    elif _is_scalar(output.value):
+        # A top-level scalar is its own "row": value plus one copy button.
+        body = (
+            f'<span class="scalar">{_render_scalar(output.value)}'
+            f"{_copy_button(output.value)}</span>"
+        )
     else:
         body = _render_value(output.value)
     return (
@@ -204,6 +236,7 @@ section.output h2 a:hover { text-decoration: underline; }
 table { border-collapse: collapse; width: 100%; margin: 0.25rem 0; }
 th, td { border: 1px solid var(--border); padding: 0.3rem 0.6rem; text-align: left; vertical-align: top; font-size: 0.9rem; }
 table.kv > tbody > tr > th { width: 30%; font-weight: 600; }
+td.act, th.act { width: 1%; white-space: nowrap; text-align: center; }
 code { font-family: ui-monospace, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
 ol.seq { margin: 0.25rem 0; padding-left: 1.5rem; }
 .scalar { display: inline-flex; align-items: baseline; gap: 0.5rem; max-width: 100%; }
@@ -228,8 +261,7 @@ document.getElementById('filter').addEventListener('input', function () {
 });
 document.addEventListener('click', function (e) {
   if (!e.target.matches('button.copy')) { return; }
-  var code = e.target.parentElement.querySelector('code');
-  navigator.clipboard.writeText(code.textContent).then(function () {
+  navigator.clipboard.writeText(e.target.dataset.raw).then(function () {
     e.target.textContent = 'copied!';
     setTimeout(function () { e.target.textContent = 'copy'; }, 1200);
   });

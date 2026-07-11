@@ -84,8 +84,9 @@ jobs:
 Push to `main`, wait for the workflow to finish, and open the URL shown on
 the deployment (also available as the `page-url` action output). You'll see
 each output rendered as a card: strings and numbers with a copy button, maps
-as key/value tables, and lists of objects as proper columnar tables — with a
-filter box to find outputs by name.
+as key/value tables, and lists of objects as proper columnar tables — one
+copy button per row (nested values copy as pretty JSON), and a filter box to
+find outputs by name.
 
 That's it. Every push regenerates and redeploys the page.
 
@@ -223,7 +224,8 @@ Raw `output -json` is noisy: values are buried in `value`/`type`/`sensitive`
 wrappers, nested objects become walls of braces, and nothing is scannable.
 tofu-garnish flattens that into structure-aware HTML: maps become key/value
 tables, lists of similar objects become columnar tables (one row per subnet,
-one column per attribute), and scalars get one-click copy buttons. It's
+one column per attribute), and every top-level row gets a single copy button
+— plain text for scalars, pretty JSON for anything nested. It's
 deliberately KISS — one self-contained HTML file, no framework, no build
 step, dark-mode via `prefers-color-scheme`, and a few lines of vanilla JS
 for filtering and copying.

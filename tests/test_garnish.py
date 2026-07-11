@@ -138,9 +138,41 @@ class TestRenderScalars:
         html = render('{"count": 42}')
         assert "<code>42</code>" in html
 
-    def test_copy_button_on_scalars(self):
+    def test_copy_button_on_top_level_scalar(self):
         html = render('{"host": "example.com"}')
-        assert '<button class="copy"' in html
+        assert html.count('<button class="copy"') == 1
+        assert 'data-raw="example.com"' in html
+
+
+class TestCopyButtons:
+    def test_one_button_per_map_row(self):
+        html = render('{"vpc": {"id": "vpc-123", "cidr": "10.0.0.0/16"}}')
+        assert html.count('<button class="copy"') == 2
+
+    def test_no_buttons_on_nested_leaves(self):
+        # tags is nested inside vpc: its inner rows get no buttons, but the
+        # vpc row's button copies the whole tags-containing structure.
+        html = render('{"vpc": {"id": "vpc-123", "tags": {"Team": "platform"}}}')
+        assert html.count('<button class="copy"') == 2
+
+    def test_one_button_per_grid_row(self):
+        html = render('{"subnets": [{"id": "s-1"}, {"id": "s-2"}, {"id": "s-3"}]}')
+        assert html.count('<button class="copy"') == 3
+
+    def test_row_button_copies_nested_json(self):
+        html = render('{"vpc": {"tags": {"Team": "platform"}}}')
+        # data-raw on the vpc row holds pretty JSON including nested leaves.
+        assert "&quot;Team&quot;: &quot;platform&quot;" in html
+
+    def test_scalar_list_items_get_buttons(self):
+        html = render('{"arns": ["arn:a", "arn:b"]}')
+        assert html.count('<button class="copy"') == 2
+        assert 'data-raw="arn:a"' in html
+
+    def test_bool_and_null_raw_text(self):
+        html = render('{"flag": true, "nothing": null}')
+        assert 'data-raw="true"' in html
+        assert 'data-raw="null"' in html
 
 
 class TestRenderNested:
@@ -192,6 +224,10 @@ class TestSensitive:
     def test_sensitive_raw_value_never_appears(self):
         html = render(fixture("tofu_output_json.json"))
         assert "s3cr3t-hunter2" not in html
+
+    def test_sensitive_output_has_no_copy_button(self):
+        html = render('{"pw": {"value": "shh", "sensitive": true}}')
+        assert '<button class="copy"' not in html
 
 
 class TestEscaping:
