@@ -6,3 +6,10 @@ __pycache__/
 site/
 tofu-garnish-site/
 .venv/
+
+# OpenTofu local state from example configs
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*-outputs.json

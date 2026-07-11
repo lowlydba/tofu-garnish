@@ -196,6 +196,17 @@ Multi-workspace sites work locally too, with `--workspace name=path`
 (repeatable) and `--merge` to preserve workspaces already in the output
 directory. Set `SOURCE_DATE_EPOCH` for a reproducible timestamp.
 
+No infrastructure handy? The repo ships provider-less example configs that
+produce realistic outputs:
+
+```console
+$ tofu -chdir=examples/demo init && tofu -chdir=examples/demo apply -auto-approve
+$ tofu -chdir=examples/demo output -json | python3 src/garnish.py --output-dir site
+```
+
+CI applies these with real OpenTofu and runs the action on the result, and
+the demo workflow publishes them to this repo's Pages.
+
 ## Reference
 
 ### Action inputs

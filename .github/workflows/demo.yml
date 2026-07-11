@@ -1,6 +1,7 @@
 name: Demo
 
-# Deploys a demo page built from the test fixture to this repo's GitHub Pages.
+# Applies the example OpenTofu configs and publishes their real outputs to
+# this repo's GitHub Pages, exercising the full pipeline end to end.
 on:
   workflow_dispatch:
   push:
@@ -8,12 +9,12 @@ on:
     paths:
       - src/**
       - action.yml
-      - tests/fixtures/tofu_output_json.json
+      - examples/**
 
 permissions: {}
 
 concurrency:
-  group: pages
+  group: tofu-garnish-demo
   cancel-in-progress: false
 
 jobs:
@@ -28,11 +29,25 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_wrapper: false
+
+      - name: Apply example configs and export outputs
+        run: |
+          set -euo pipefail
+          for ws in demo staging; do
+            tofu -chdir="examples/$ws" init -input=false
+            tofu -chdir="examples/$ws" apply -input=false -auto-approve
+            tofu -chdir="examples/$ws" output -json > "$ws-outputs.json"
+          done
+
       - name: Garnish outputs
         id: garnish
         uses: ./
         with:
           workspaces: |
-            prod=tests/fixtures/tofu_output_json.json
-            staging=tests/fixtures/dflook_json_output_path.json
+            prod=demo-outputs.json
+            staging=staging-outputs.json
           title: tofu-garnish demo

@@ -145,6 +145,64 @@ jobs:
             exit 1
           fi
 
+  tofu-e2e:
+    name: End-to-end test (real OpenTofu)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_wrapper: false
+
+      - name: Apply example configs and export outputs
+        run: |
+          set -euo pipefail
+          for ws in demo staging; do
+            tofu -chdir="examples/$ws" init -input=false
+            tofu -chdir="examples/$ws" apply -input=false -auto-approve
+            tofu -chdir="examples/$ws" output -json > "$ws-outputs.json"
+          done
+
+      - name: Run action on real tofu output (prod workspace)
+        uses: ./
+        with:
+          workspaces: |
+            prod=demo-outputs.json
+          title: Tofu E2E
+          output-dir: e2e-site
+          deploy: "false"
+
+      - name: Run action again for the staging workspace
+        uses: ./
+        with:
+          workspaces: |
+            staging=staging-outputs.json
+          title: Tofu E2E
+          output-dir: e2e-site
+          deploy: "false"
+
+      - name: Verify generated site
+        run: |
+          set -euo pipefail
+          grep -q '<a href="prod/">prod</a>' e2e-site/index.html
+          grep -q '<a href="staging/">staging</a>' e2e-site/index.html
+          grep -q "vpc-01463b6b84e1454ce" e2e-site/prod/index.html
+          grep -q "subnet-053008016a2c1768c" e2e-site/prod/index.html
+          grep -q "staging.example.com" e2e-site/staging/index.html
+          grep -q "(sensitive)" e2e-site/prod/index.html
+          if grep -q "s3cr3t-hunter2" e2e-site/prod/index.html; then
+            echo "::error::sensitive tofu output leaked into generated page"
+            exit 1
+          fi
+          echo "Tofu end-to-end checks passed."
+
   zizmor:
     name: Security audit (zizmor)
     runs-on: ubuntu-latest
