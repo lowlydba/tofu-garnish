@@ -302,60 +302,6 @@ class TestPageChrome:
 
 
 # ---------------------------------------------------------------------------
-# Description convention (<name>_desc / <name>_description)
-# ---------------------------------------------------------------------------
-
-
-class TestDescriptionConvention:
-    def test_desc_suffix_folds_into_base_output(self):
-        outputs = parse_outputs(
-            '{"bucket_arn": "arn:aws:s3:::b", "bucket_arn_desc": "ARN of the default bucket"}'
-        )
-        assert [o.name for o in outputs] == ["bucket_arn"]
-        assert outputs[0].description == "ARN of the default bucket"
-
-    def test_description_suffix_also_works(self):
-        outputs = parse_outputs('{"vpc": {"id": "v-1"}, "vpc_description": "Main VPC"}')
-        assert [o.name for o in outputs] == ["vpc"]
-        assert outputs[0].description == "Main VPC"
-
-    def test_orphan_desc_stays_a_normal_output(self):
-        outputs = parse_outputs('{"lonely_desc": "no base output"}')
-        assert [o.name for o in outputs] == ["lonely_desc"]
-        assert outputs[0].description == ""
-
-    def test_non_string_desc_not_folded(self):
-        outputs = parse_outputs('{"a": 1, "a_desc": {"not": "a string"}}')
-        assert [o.name for o in outputs] == ["a", "a_desc"]
-
-    def test_sensitive_desc_not_folded(self):
-        outputs = parse_outputs(
-            '{"a": {"value": 1}, "a_desc": {"value": "shh", "sensitive": true}}'
-        )
-        assert [o.name for o in outputs] == ["a", "a_desc"]
-
-    def test_works_in_tf_output_json_format(self):
-        outputs = parse_outputs(
-            '{"host": {"value": "example.com"}, "host_desc": {"value": "Public hostname"}}'
-        )
-        assert [o.name for o in outputs] == ["host"]
-        assert outputs[0].description == "Public hostname"
-
-    def test_description_rendered_and_escaped(self):
-        html = render('{"a": 1, "a_desc": "The <b>answer</b>"}')
-        assert '<p class="desc">The &lt;b&gt;answer&lt;/b&gt;</p>' in html
-        assert "<b>answer</b>" not in html
-
-    def test_description_included_in_search_index(self):
-        html = render('{"a": 1, "a_desc": "Findable Phrase"}')
-        assert "findable phrase" in html
-
-    def test_no_desc_paragraph_without_description(self):
-        html = render('{"a": 1}')
-        assert '<p class="desc">' not in html
-
-
-# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 

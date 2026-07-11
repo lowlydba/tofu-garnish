@@ -245,27 +245,6 @@ Format detection is automatic:
    `toJson(steps.<id>.outputs)`. Strings that look like JSON arrays/objects
    are decoded; primitive strings are left untouched.
 
-### Description convention
-
-Tofu/Terraform's `description` argument on outputs is **not** included in
-`output -json`, so it can't survive into the page. As a workaround,
-tofu-garnish supports a sibling-output convention: a string output named
-`<name>_desc` or `<name>_description` is rendered as the description of
-output `<name>` (and included in the filter index) instead of appearing as
-its own card:
-
-```hcl
-output "bucket_arn" {
-  value = aws_s3_bucket.default.arn
-}
-
-output "bucket_arn_desc" {
-  value = "ARN of the default artifacts bucket"
-}
-```
-
-A `_desc` output with no matching base output is shown normally.
-
 ### Site structure (workspaces mode)
 
 ```text
