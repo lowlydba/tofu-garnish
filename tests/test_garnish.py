@@ -6,7 +6,15 @@ from pathlib import Path
 import pytest
 
 import garnish
-from garnish import MASK, Page, main, parse_outputs, render_page
+from garnish import (
+    MASK,
+    Page,
+    main,
+    parse_outputs,
+    parse_workspace_spec,
+    render_page,
+    slugify,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -359,3 +367,200 @@ class TestCli:
             main(["--version"])
         assert exc.value.code == 0
         assert garnish.__version__ in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------------------
+# Multi-workspace mode
+# ---------------------------------------------------------------------------
+
+
+class TestSlugify:
+    @pytest.mark.parametrize(
+        ("name", "expected"),
+        [
+            ("prod", "prod"),
+            ("Prod US-East 1", "prod-us-east-1"),
+            ("tenant/acme corp", "tenant-acme-corp"),
+            ("v1.2_x", "v1.2_x"),
+            ("///", "workspace"),
+            ("..", "workspace"),
+        ],
+    )
+    def test_slugs(self, name, expected):
+        assert slugify(name) == expected
+
+
+class TestWorkspaceSpec:
+    def test_parses_name_and_path(self):
+        assert parse_workspace_spec("prod=out/prod.json") == ("prod", "out/prod.json")
+
+    def test_strips_whitespace(self):
+        assert parse_workspace_spec("  prod = out.json ") == ("prod", "out.json")
+
+    def test_path_may_contain_equals(self):
+        assert parse_workspace_spec("a=b=c") == ("a", "b=c")
+
+    @pytest.mark.parametrize("spec", ["noequals", "=path", "name=", "="])
+    def test_invalid_specs(self, spec):
+        with pytest.raises(ValueError, match="invalid workspace spec"):
+            parse_workspace_spec(spec)
+
+
+class TestMultiWorkspaceCli:
+    def _run(self, tmp_path, *specs):
+        out = tmp_path / "site"
+        rc = main(
+            ["--output-dir", str(out), "--title", "Acme Outputs"]
+            + [arg for spec in specs for arg in ("--workspace", spec)]
+        )
+        return rc, out
+
+    def test_builds_landing_and_per_workspace_pages(self, tmp_path):
+        rc, out = self._run(
+            tmp_path,
+            f"prod={FIXTURES / 'tofu_output_json.json'}",
+            f"staging={FIXTURES / 'dflook_json_output_path.json'}",
+        )
+        assert rc == 0
+        landing = (out / "index.html").read_text(encoding="utf-8")
+        assert "2 workspaces" in landing
+        assert '<a href="prod/">prod</a>' in landing
+        assert '<a href="staging/">staging</a>' in landing
+        assert "7 outputs" in landing
+        prod = (out / "prod" / "index.html").read_text(encoding="utf-8")
+        assert "<title>Acme Outputs · prod</title>" in prod
+        assert "vpc-01463b6b84e1454ce" in prod
+
+    def test_workspace_pages_link_back_to_landing(self, tmp_path):
+        rc, out = self._run(tmp_path, f"prod={FIXTURES / 'tofu_output_json.json'}")
+        assert rc == 0
+        page = (out / "prod" / "index.html").read_text(encoding="utf-8")
+        assert '<a href="../">← all workspaces</a>' in page
+
+    def test_single_mode_has_no_back_link(self, tmp_path):
+        out = tmp_path / "site"
+        main(["--input", str(FIXTURES / "tofu_output_json.json"), "--output-dir", str(out)])
+        assert "all workspaces" not in (out / "index.html").read_text(encoding="utf-8")
+
+    def test_names_are_slugged_and_escaped(self, tmp_path):
+        rc, out = self._run(tmp_path, f"Prod US East={FIXTURES / 'dflook_json_output_path.json'}")
+        assert rc == 0
+        landing = (out / "index.html").read_text(encoding="utf-8")
+        assert '<a href="prod-us-east/">Prod US East</a>' in landing
+        assert (out / "prod-us-east" / "index.html").is_file()
+
+    def test_duplicate_slug_fails(self, tmp_path, capsys):
+        rc, _ = self._run(
+            tmp_path,
+            f"prod={FIXTURES / 'tofu_output_json.json'}",
+            f"PROD={FIXTURES / 'dflook_json_output_path.json'}",
+        )
+        assert rc == 2
+        assert "clashes" in capsys.readouterr().err
+
+    def test_invalid_spec_fails(self, tmp_path, capsys):
+        rc, _ = self._run(tmp_path, "just-a-name")
+        assert rc == 2
+        assert "invalid workspace spec" in capsys.readouterr().err
+
+    def test_missing_workspace_file_fails(self, tmp_path, capsys):
+        rc, _ = self._run(tmp_path, f"prod={tmp_path / 'nope.json'}")
+        assert rc == 2
+        assert "not found" in capsys.readouterr().err
+
+    def test_workspace_overrides_input(self, tmp_path):
+        out = tmp_path / "site"
+        rc = main(
+            [
+                "--input",
+                str(tmp_path / "does-not-exist.json"),
+                "--workspace",
+                f"prod={FIXTURES / 'dflook_json_output_path.json'}",
+                "--output-dir",
+                str(out),
+            ]
+        )
+        assert rc == 0
+        assert (out / "prod" / "index.html").is_file()
+
+    def test_sensitive_masked_in_workspace_pages(self, tmp_path):
+        rc, out = self._run(tmp_path, f"prod={FIXTURES / 'tofu_output_json.json'}")
+        assert rc == 0
+        page = (out / "prod" / "index.html").read_text(encoding="utf-8")
+        assert "s3cr3t-hunter2" not in page
+        assert MASK in page
+
+    def test_writes_manifest(self, tmp_path):
+        rc, out = self._run(tmp_path, f"prod={FIXTURES / 'tofu_output_json.json'}")
+        assert rc == 0
+        manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+        assert manifest["workspaces"]["prod"]["name"] == "prod"
+        assert manifest["workspaces"]["prod"]["outputs"] == 7
+        assert manifest["workspaces"]["prod"]["updated"]
+
+    def test_landing_sorted_by_name(self, tmp_path):
+        rc, out = self._run(
+            tmp_path,
+            f"zeta={FIXTURES / 'dflook_json_output_path.json'}",
+            f"Alpha={FIXTURES / 'dflook_json_output_path.json'}",
+        )
+        assert rc == 0
+        landing = (out / "index.html").read_text(encoding="utf-8")
+        assert landing.index(">Alpha</a>") < landing.index(">zeta</a>")
+
+
+class TestMergeMode:
+    def _run(self, out, *specs, merge=True):
+        argv = ["--output-dir", str(out)]
+        if merge:
+            argv.append("--merge")
+        argv += [arg for spec in specs for arg in ("--workspace", spec)]
+        return main(argv)
+
+    def test_merge_preserves_other_workspaces(self, tmp_path):
+        out = tmp_path / "site"
+        assert self._run(out, f"prod={FIXTURES / 'tofu_output_json.json'}") == 0
+        assert self._run(out, f"staging={FIXTURES / 'dflook_json_output_path.json'}") == 0
+        landing = (out / "index.html").read_text(encoding="utf-8")
+        assert '<a href="prod/">prod</a>' in landing
+        assert '<a href="staging/">staging</a>' in landing
+        assert (out / "prod" / "index.html").is_file()
+        manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+        assert set(manifest["workspaces"]) == {"prod", "staging"}
+
+    def test_merge_overwrites_same_workspace(self, tmp_path):
+        out = tmp_path / "site"
+        assert self._run(out, f"prod={FIXTURES / 'tofu_output_json.json'}") == 0
+        assert self._run(out, f"prod={FIXTURES / 'dflook_json_output_path.json'}") == 0
+        manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+        assert manifest["workspaces"]["prod"]["outputs"] == 4
+        landing = (out / "index.html").read_text(encoding="utf-8")
+        assert landing.count("<section") == 1
+
+    def test_without_merge_landing_drops_previous(self, tmp_path):
+        out = tmp_path / "site"
+        assert self._run(out, f"prod={FIXTURES / 'tofu_output_json.json'}") == 0
+        assert (
+            self._run(out, f"staging={FIXTURES / 'dflook_json_output_path.json'}", merge=False) == 0
+        )
+        landing = (out / "index.html").read_text(encoding="utf-8")
+        assert "prod" not in landing
+
+    def test_corrupt_manifest_is_ignored(self, tmp_path):
+        out = tmp_path / "site"
+        out.mkdir()
+        (out / "manifest.json").write_text("{nope", encoding="utf-8")
+        assert self._run(out, f"prod={FIXTURES / 'dflook_json_output_path.json'}") == 0
+        manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+        assert set(manifest["workspaces"]) == {"prod"}
+
+    def test_landing_shows_updated_timestamp(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("SOURCE_DATE_EPOCH", "0")
+        out = tmp_path / "site"
+        assert self._run(out, f"prod={FIXTURES / 'dflook_json_output_path.json'}") == 0
+        landing = (out / "index.html").read_text(encoding="utf-8")
+        assert "updated 1970-01-01 00:00 UTC" in landing
+
+    def test_merge_requires_workspace(self, capsys):
+        assert main(["--merge"]) == 2
+        assert "requires at least one --workspace" in capsys.readouterr().err

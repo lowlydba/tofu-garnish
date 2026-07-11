@@ -1,7 +1,9 @@
 name: tofu-garnish
 description: >-
-  Generate a simple static HTML page from Tofu/Terraform outputs and deploy it
-  to GitHub Pages. Plug-and-play with dflook/terraform-github-actions.
+  Generate a simple static HTML page from Tofu/Terraform outputs and publish
+  it to a GitHub Pages branch. Plug-and-play with
+  dflook/terraform-github-actions. Supports incremental multi-workspace
+  updates without clobbering other workspaces.
 author: lowlydba
 branding:
   icon: layout
@@ -11,7 +13,7 @@ inputs:
   outputs-file:
     description: >-
       Path to a JSON file of Tofu/Terraform outputs. Accepts the file from the
-      `json_output_path` output of dflook/terraform-output, or the output of
+      `json_output_path` output of dflook/terraform-output and the output of
       `tofu output -json` / `terraform output -json`.
     required: false
     default: ""
@@ -22,65 +24,85 @@ inputs:
       is set.
     required: false
     default: ""
+  workspaces:
+    description: >-
+      Multiline list of "name=path" pairs, one per line, for publishing
+      several discrete output sets (workspaces, accounts, tenants) as one
+      site. Each workspace gets its own page under /<name>/ plus a landing
+      page linking them. When deploying, only the listed workspaces are
+      overwritten; other workspaces already on the site are preserved.
+      Takes precedence over outputs-file and outputs.
+    required: false
+    default: ""
   title:
     description: Title for the generated page.
     required: false
     default: Tofu Outputs
   output-dir:
-    description: Directory the generated site is written to.
+    description: >-
+      Directory the generated site is written to. Only used when deploy is
+      "false"; deploys generate directly into a clone of the Pages branch.
     required: false
     default: tofu-garnish-site
   deploy:
     description: >-
-      Whether to upload the site as a Pages artifact and deploy it to GitHub
-      Pages. Set to "false" to only generate the HTML.
+      Whether to commit the site to the Pages branch. Set to "false" to only
+      generate the HTML into output-dir.
     required: false
     default: "true"
+  pages-branch:
+    description: Branch GitHub Pages serves from. Created if it doesn't exist.
+    required: false
+    default: gh-pages
+  github-token:
+    description: >-
+      Token used to read and push the Pages branch. Needs contents write
+      access to this repository.
+    required: false
+    default: ${{ github.token }}
 
 outputs:
   page-url:
-    description: URL of the deployed GitHub Pages site (empty when deploy is false).
-    value: ${{ steps.deploy.outputs.page_url }}
+    description: URL of the GitHub Pages site (empty when deploy is false).
+    value: ${{ steps.deploy.outputs.page-url }}
   site-dir:
     description: Directory containing the generated index.html.
-    value: ${{ steps.generate.outputs.site-dir }}
+    value: ${{ steps.generate.outputs.site-dir || steps.deploy.outputs.site-dir }}
 
 runs:
   using: composite
   steps:
     - name: Generate HTML page
+      if: ${{ inputs.deploy != 'true' }}
       id: generate
       shell: bash
       env:
         GARNISH_OUTPUTS: ${{ inputs.outputs }}
         GARNISH_OUTPUTS_FILE: ${{ inputs.outputs-file }}
+        GARNISH_WORKSPACES: ${{ inputs.workspaces }}
         GARNISH_TITLE: ${{ inputs.title }}
         GARNISH_OUTPUT_DIR: ${{ inputs.output-dir }}
         GARNISH_SCRIPT: ${{ github.action_path }}/src/garnish.py
+        GARNISH_ACTION_PATH: ${{ github.action_path }}
       run: |
         set -euo pipefail
-        if [ -n "$GARNISH_OUTPUTS_FILE" ]; then
-          python3 "$GARNISH_SCRIPT" \
-            --input "$GARNISH_OUTPUTS_FILE" \
-            --output-dir "$GARNISH_OUTPUT_DIR" \
-            --title "$GARNISH_TITLE"
-        elif [ -n "$GARNISH_OUTPUTS" ]; then
-          printf '%s' "$GARNISH_OUTPUTS" | python3 "$GARNISH_SCRIPT" \
-            --output-dir "$GARNISH_OUTPUT_DIR" \
-            --title "$GARNISH_TITLE"
-        else
-          echo "::error::one of 'outputs-file' or 'outputs' must be provided" >&2
-          exit 1
-        fi
+        bash "$GARNISH_ACTION_PATH/src/generate.sh" "$GARNISH_OUTPUT_DIR"
         echo "site-dir=$GARNISH_OUTPUT_DIR" >> "$GITHUB_OUTPUT"
 
-    - name: Upload Pages artifact
-      if: ${{ inputs.deploy == 'true' }}
-      uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-      with:
-        path: ${{ steps.generate.outputs.site-dir }}
-
-    - name: Deploy to GitHub Pages
+    - name: Publish to Pages branch
       if: ${{ inputs.deploy == 'true' }}
       id: deploy
-      uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        GARNISH_OUTPUTS: ${{ inputs.outputs }}
+        GARNISH_OUTPUTS_FILE: ${{ inputs.outputs-file }}
+        GARNISH_WORKSPACES: ${{ inputs.workspaces }}
+        GARNISH_TITLE: ${{ inputs.title }}
+        GARNISH_SCRIPT: ${{ github.action_path }}/src/garnish.py
+        GARNISH_ACTION_PATH: ${{ github.action_path }}
+        PAGES_BRANCH: ${{ inputs.pages-branch }}
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const publish = require(`${process.env.GARNISH_ACTION_PATH}/src/publish.js`);
+          await publish({ github, context, core, exec });

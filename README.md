@@ -16,7 +16,9 @@ Turn OpenTofu/Terraform outputs into a simple, readable static page on your
 repo's GitHub Pages — so engineers can find that ARN without running `tofu
 output` or spelunking through state.
 
-Plug-and-play with [dflook/terraform-github-actions][dflook].
+Plug-and-play with [dflook/terraform-github-actions][dflook]. Supports many
+discrete applies (workspaces, accounts, tenants) publishing to one site
+without clobbering each other.
 
 ---
 
@@ -28,12 +30,7 @@ This README follows the [Diátaxis](https://diataxis.fr/) framework:
 
 *Publish your Tofu outputs to GitHub Pages in about five minutes.*
 
-### 1. Enable GitHub Pages for your repository
-
-In your repository: **Settings → Pages → Build and deployment → Source →
-GitHub Actions**.
-
-### 2. Add a workflow
+### 1. Add a workflow
 
 Create `.github/workflows/publish-outputs.yml`:
 
@@ -46,20 +43,11 @@ on:
 
 permissions: {}
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.garnish.outputs.page-url }}
     permissions:
-      contents: read
-      pages: write     # deploy the generated site to GitHub Pages
-      id-token: write  # OIDC token for verified Pages deployment
+      contents: write  # push the generated site to the Pages branch
     steps:
       - uses: actions/checkout@v7
         with:
@@ -79,18 +67,71 @@ jobs:
           title: My Stack Outputs
 ```
 
-### 3. Push and visit your page
+Push to `main` and let it run once — this creates the `gh-pages` branch.
 
-Push to `main`, wait for the workflow to finish, and open the URL shown on
-the deployment (also available as the `page-url` action output). You'll see
-each output rendered as a card: strings and numbers with a copy button, maps
-as key/value tables, and lists of objects as proper columnar tables — one
-copy button per row (nested values copy as pretty JSON), and a filter box to
-find outputs by name.
+### 2. Enable GitHub Pages for the branch
 
-That's it. Every push regenerates and redeploys the page.
+In your repository: **Settings → Pages → Build and deployment → Source →
+Deploy from a branch**, then pick `gh-pages` / `/ (root)`.
+
+### 3. Visit your page
+
+Open the site URL shown in the Pages settings (also available as the
+`page-url` action output on later runs). You'll see each output rendered as
+a card: maps as key/value tables, lists of objects as proper columnar tables,
+one copy button per row (nested values copy as pretty JSON), and a filter box
+that matches names, keys, and values.
+
+That's it. Every push regenerates and republishes the page.
 
 ## How-to guides
+
+### Publish multiple workspaces, accounts, or tenants
+
+Use the `workspaces` input — one `name=path` pair per line. Each workspace
+gets its own page under `/<name>/`, plus a landing page linking them all:
+
+```yaml
+      - uses: lowlydba/tofu-garnish@v1
+        with:
+          title: Platform Outputs
+          workspaces: |
+            prod-us=prod-us-outputs.json
+            prod-eu=prod-eu-outputs.json
+            staging=staging-outputs.json
+```
+
+### Update one workspace without touching the others
+
+Different applies for different tenants usually run in different workflows,
+at different times. That's fine: in `workspaces` mode, each deploy only
+overwrites the workspaces it names and rebuilds the landing page — everything
+else already on the site is preserved. So the workflow that applies `prod-eu`
+just publishes `prod-eu`:
+
+```yaml
+      - name: Get outputs
+        uses: dflook/terraform-output@v2
+        id: tf-outputs
+        with:
+          path: infra
+          workspace: prod-eu
+
+      - uses: lowlydba/tofu-garnish@v1
+        with:
+          title: Platform Outputs
+          workspaces: |
+            prod-eu=${{ steps.tf-outputs.outputs.json_output_path }}
+```
+
+If several such workflows can run at the same moment, serialize the deploys
+with a shared concurrency group:
+
+```yaml
+concurrency:
+  group: tofu-garnish
+  cancel-in-progress: false
+```
 
 ### Use it without dflook actions
 
@@ -151,29 +192,34 @@ $ tofu output -json | python3 src/garnish.py --title "My Stack" --output-dir sit
 garnish: wrote site/index.html (7 outputs)
 ```
 
-Set `SOURCE_DATE_EPOCH` for a reproducible timestamp.
+Multi-workspace sites work locally too, with `--workspace name=path`
+(repeatable) and `--merge` to preserve workspaces already in the output
+directory. Set `SOURCE_DATE_EPOCH` for a reproducible timestamp.
 
 ## Reference
 
 ### Action inputs
 
-| Input          | Required | Default             | Description                                                                                                                      |
-| -------------- | -------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `outputs-file` | no*      | —                   | Path to a JSON outputs file: the `json_output_path` file from `dflook/terraform-output`, or the output of `tofu output -json`.     |
-| `outputs`      | no*      | —                   | Inline JSON string of outputs, e.g. `toJson(steps.<id>.outputs)` from a `dflook/terraform-output` step. Ignored if `outputs-file` is set. |
-| `title`        | no       | `Tofu Outputs`      | Title shown on the generated page.                                                                                                 |
-| `output-dir`   | no       | `tofu-garnish-site` | Directory the site is written to.                                                                                                  |
-| `deploy`       | no       | `"true"`            | Upload the site as a Pages artifact and deploy it. Set `"false"` to only generate HTML.                                            |
+| Input          | Required | Default             | Description                                                                                                                                    |
+| -------------- | -------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `outputs-file` | no*      | —                   | Path to a JSON outputs file: the `json_output_path` file from `dflook/terraform-output`, or the output of `tofu output -json`.                   |
+| `outputs`      | no*      | —                   | Inline JSON string of outputs, e.g. `toJson(steps.<id>.outputs)` from a `dflook/terraform-output` step. Ignored if `outputs-file` is set.        |
+| `workspaces`   | no*      | —                   | Multiline `name=path` pairs for multi-workspace sites. Only the named workspaces are overwritten on deploy. Takes precedence over other inputs.  |
+| `title`        | no       | `Tofu Outputs`      | Title shown on the generated page(s).                                                                                                            |
+| `output-dir`   | no       | `tofu-garnish-site` | Where the site is written when `deploy` is `"false"`.                                                                                            |
+| `deploy`       | no       | `"true"`            | Commit the site to the Pages branch. Set `"false"` to only generate HTML.                                                                        |
+| `pages-branch` | no       | `gh-pages`          | Branch GitHub Pages serves from. Created automatically if missing.                                                                               |
+| `github-token` | no       | `github.token`      | Token used to read and push the Pages branch (needs `contents: write`).                                                                          |
 
-\* Exactly one of `outputs-file` or `outputs` must be provided; the action
-fails if both are empty.
+\* Exactly one of `workspaces`, `outputs-file`, or `outputs` must be
+provided; the action fails if all are empty.
 
 ### Action outputs
 
-| Output     | Description                                                  |
-| ---------- | ------------------------------------------------------------ |
-| `page-url` | URL of the deployed Pages site (empty when `deploy` is off). |
-| `site-dir` | Directory containing the generated `index.html`.             |
+| Output     | Description                                                        |
+| ---------- | ------------------------------------------------------------------ |
+| `page-url` | URL of the GitHub Pages site (empty when `deploy` is `"false"`).   |
+| `site-dir` | Directory containing the generated `index.html`.                   |
 
 ### Accepted input formats
 
@@ -188,25 +234,41 @@ Format detection is automatic:
    `toJson(steps.<id>.outputs)`. Strings that look like JSON arrays/objects
    are decoded; primitive strings are left untouched.
 
+### Site structure (workspaces mode)
+
+```text
+gh-pages
+├── .nojekyll
+├── index.html        # landing page listing all workspaces
+├── manifest.json     # machine-readable workspace index (used for merging)
+├── prod-us/index.html
+└── staging/index.html
+```
+
+Workspace names are slugged for directory safety (`Prod US` → `prod-us/`);
+two names that slug identically are rejected.
+
 ### Workflow requirements (when deploying)
 
-* GitHub Pages source set to **GitHub Actions**.
-* Job permissions: `pages: write` and `id-token: write`.
-* Job environment: `github-pages` (recommended).
-* A `concurrency` group when multiple workflows may deploy Pages.
+* Job permission `contents: write` (or a `github-token` that has it).
+* GitHub Pages source set to **Deploy from a branch** → your `pages-branch`.
+* A shared `concurrency` group if multiple workflows may deploy at once.
 
 ### CLI reference
 
 ```text
-usage: garnish [-h] [--input INPUT] [--output-dir OUTPUT_DIR] [--title TITLE] [--version]
+usage: garnish [-h] [--input INPUT] [--workspace NAME=PATH] [--merge]
+               [--output-dir OUTPUT_DIR] [--title TITLE] [--version]
 
 --input       Path to a JSON outputs file, or '-' for stdin (default).
---output-dir  Directory to write index.html into (default: site).
+--workspace   Named outputs file, repeatable; builds a multi-workspace site.
+--merge       Preserve workspaces recorded in the output dir's manifest.json.
+--output-dir  Directory to write the site into (default: site).
 --title       Page title (default: 'Tofu Outputs').
 ```
 
-Exit codes: `0` success, `2` bad input (missing file, invalid JSON, or
-non-object top level).
+Exit codes: `0` success, `2` bad input (missing file, invalid JSON,
+non-object top level, bad workspace spec, or clashing workspace names).
 
 ## Explanation
 
@@ -226,27 +288,38 @@ tofu-garnish flattens that into structure-aware HTML: maps become key/value
 tables, lists of similar objects become columnar tables (one row per subnet,
 one column per attribute), and every top-level row gets a single copy button
 — plain text for scalars, pretty JSON for anything nested. It's
-deliberately KISS — one self-contained HTML file, no framework, no build
+deliberately KISS — self-contained HTML files, no framework, no build
 step, dark-mode via `prefers-color-scheme`, and a few lines of vanilla JS
 for filtering and copying.
+
+### Why a Pages branch instead of `deploy-pages` artifacts?
+
+Artifact-based Pages deployments are atomic: every deploy replaces the whole
+site. That forces every apply workflow to gather *all* workspaces' outputs
+(matrix fan-in) even when only one tenant changed. Committing to a Pages
+branch instead makes updates incremental: the action writes only the files
+for the workspaces you named (via the Git Data API's `base_tree`, through
+`actions/github-script` — no clone, no credential juggling) and everything
+else on the branch is preserved. Push races between concurrent tenant
+deploys are retried against the fresh branch tip.
 
 ### <a name="sensitive-values"></a>How are sensitive values handled?
 
 When the input is in `output -json` format, any output flagged
 `"sensitive": true` is rendered as a masked placeholder — the value never
-reaches the HTML. **Caveat:** the other two input formats carry no
-sensitivity metadata, so tofu-garnish cannot know what to mask; and either
-way, your Pages site is as public as your repo. Don't publish outputs you
-wouldn't commit to the README.
+reaches the HTML, the copy buttons, or the filter index. **Caveat:** the
+other two input formats carry no sensitivity metadata, so tofu-garnish
+cannot know what to mask; and either way, your Pages site is as public as
+your repo. Don't publish outputs you wouldn't commit to the README.
 
 ### Security posture
 
-The action is a composite of a stdlib-only Python script plus the official
-`actions/upload-pages-artifact` and `actions/deploy-pages` actions, all
-pinned to full commit SHAs. All user-controlled values are passed through
-environment variables (never interpolated into shell), and all rendered
-content is HTML-escaped. CI runs [zizmor][zizmor] with the **pedantic**
-persona over every workflow and the action itself.
+The action is a composite of a stdlib-only Python script plus
+`actions/github-script` pinned to a full commit SHA. All user-controlled
+values are passed through environment variables (never interpolated into
+shell), all rendered content is HTML-escaped, and the token is only ever
+handled by github-script's Octokit client. CI runs [zizmor][zizmor] with the
+**pedantic** persona over every workflow and the action itself.
 
 ## Development
 

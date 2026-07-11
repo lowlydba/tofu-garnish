@@ -6,7 +6,7 @@ on:
   push:
     branches: [main]
     paths:
-      - src/garnish.py
+      - src/**
       - action.yml
       - tests/fixtures/tofu_output_json.json
 
@@ -20,13 +20,8 @@ jobs:
   deploy-demo:
     name: Deploy demo page
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.garnish.outputs.page-url }}
     permissions:
-      contents: read
-      pages: write # deploy the generated site to GitHub Pages
-      id-token: write # OIDC token for verified Pages deployment
+      contents: write # push the generated site to the gh-pages branch
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -37,5 +32,7 @@ jobs:
         id: garnish
         uses: ./
         with:
-          outputs-file: tests/fixtures/tofu_output_json.json
+          workspaces: |
+            prod=tests/fixtures/tofu_output_json.json
+            staging=tests/fixtures/dflook_json_output_path.json
           title: tofu-garnish demo

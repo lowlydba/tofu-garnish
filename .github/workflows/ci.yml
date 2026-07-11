@@ -37,6 +37,9 @@ jobs:
       - name: Ruff format check
         run: ruff format --check .
 
+      - name: Syntax-check publish script
+        run: node --check src/publish.js
+
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -90,6 +93,25 @@ jobs:
           output-dir: it-site-inline
           deploy: "false"
 
+      - name: Run action with workspaces input
+        uses: ./
+        with:
+          workspaces: |
+            prod=tests/fixtures/tofu_output_json.json
+            staging=tests/fixtures/dflook_json_output_path.json
+          title: Workspaces Test
+          output-dir: it-site-ws
+          deploy: "false"
+
+      - name: Run action again to merge a new workspace
+        uses: ./
+        with:
+          workspaces: |
+            dev=tests/fixtures/dflook_json_output_path.json
+          title: Workspaces Test
+          output-dir: it-site-ws
+          deploy: "false"
+
       - name: Verify generated pages
         run: |
           set -euo pipefail
@@ -101,6 +123,12 @@ jobs:
           fi
           grep -q "<title>Inline Test</title>" it-site-inline/index.html
           grep -q "vpc-123" it-site-inline/index.html
+          grep -q '<a href="prod/">prod</a>' it-site-ws/index.html
+          grep -q '<a href="staging/">staging</a>' it-site-ws/index.html
+          grep -q '<a href="dev/">dev</a>' it-site-ws/index.html
+          grep -q "Workspaces Test · prod" it-site-ws/prod/index.html
+          grep -q "all workspaces" it-site-ws/staging/index.html
+          grep -q '"dev"' it-site-ws/manifest.json
           echo "Integration checks passed."
 
       - name: Verify action fails without inputs
