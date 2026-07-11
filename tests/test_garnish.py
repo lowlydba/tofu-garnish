@@ -9,7 +9,9 @@ import garnish
 from garnish import (
     MASK,
     Page,
+    apply_descriptions,
     main,
+    parse_descriptions,
     parse_outputs,
     parse_workspace_spec,
     render_page,
@@ -299,6 +301,126 @@ class TestPageChrome:
     def test_outputs_sorted_alphabetically_in_page(self):
         html = render('{"zebra": 1, "Apple": 2}')
         assert html.index('id="Apple"') < html.index('id="zebra"')
+
+
+# ---------------------------------------------------------------------------
+# Descriptions (OpenTofu `tofu show -json -module=DIR` configuration JSON)
+# ---------------------------------------------------------------------------
+
+
+class TestParseDescriptions:
+    def test_tofu_show_module_format(self):
+        descriptions = parse_descriptions(fixture("tofu_show_module.json"))
+        assert descriptions == {
+            "cluster_endpoint": "Kubernetes API endpoint",
+            "vpc": "VPC attributes",
+            "database_password": "A sensitive value",
+        }
+
+    def test_plain_map_format(self):
+        assert parse_descriptions('{"a": "The A output"}') == {"a": "The A output"}
+
+    def test_invalid_json(self):
+        with pytest.raises(ValueError, match="not valid JSON"):
+            parse_descriptions("{nope")
+
+    def test_non_object(self):
+        with pytest.raises(ValueError, match="must be a JSON object"):
+            parse_descriptions("[1]")
+
+    def test_root_module_without_outputs(self):
+        assert parse_descriptions('{"root_module": {}}') == {}
+
+    def test_non_string_descriptions_skipped(self):
+        text = '{"root_module": {"outputs": {"a": {"description": 5}, "b": {"description": "ok"}}}}'
+        assert parse_descriptions(text) == {"b": "ok"}
+
+
+class TestDescriptionsOnPage:
+    def _render(self, outputs_json, descriptions):
+        outputs = parse_outputs(outputs_json)
+        apply_descriptions(outputs, descriptions)
+        return render_page(Page(title="T", outputs=outputs, generated_at="now"))
+
+    def test_description_rendered_under_heading(self):
+        html = self._render('{"vpc": {"id": "v-1"}}', {"vpc": "The main VPC"})
+        assert '<p class="desc">The main VPC</p>' in html
+
+    def test_description_escaped(self):
+        html = self._render('{"a": 1}', {"a": "<script>x</script>"})
+        assert "<script>x" not in html
+        assert "&lt;script&gt;" in html
+
+    def test_description_searchable(self):
+        html = self._render('{"a": 1}', {"a": "Findable Phrase"})
+        assert "findable phrase" in html
+
+    def test_no_desc_paragraph_without_description(self):
+        html = self._render('{"a": 1}', {})
+        assert '<p class="desc">' not in html
+
+    def test_unmatched_description_ignored(self):
+        html = self._render('{"a": 1}', {"other": "irrelevant"})
+        assert '<p class="desc">' not in html
+
+    def test_sensitive_output_still_shows_description(self):
+        outputs = parse_outputs('{"pw": {"value": "shh", "sensitive": true}}')
+        apply_descriptions(outputs, {"pw": "The database password"})
+        html = render_page(Page(title="T", outputs=outputs, generated_at="now"))
+        assert '<p class="desc">The database password</p>' in html
+        assert "shh" not in html
+
+
+class TestDescriptionsCli:
+    def test_single_mode(self, tmp_path):
+        out = tmp_path / "site"
+        rc = main(
+            [
+                "--input",
+                str(FIXTURES / "tofu_output_json.json"),
+                "--descriptions",
+                str(FIXTURES / "tofu_show_module.json"),
+                "--output-dir",
+                str(out),
+            ]
+        )
+        assert rc == 0
+        html = (out / "index.html").read_text(encoding="utf-8")
+        assert '<p class="desc">Kubernetes API endpoint</p>' in html
+
+    def test_workspaces_mode_applies_to_all(self, tmp_path):
+        out = tmp_path / "site"
+        rc = main(
+            [
+                "--workspace",
+                f"prod={FIXTURES / 'tofu_output_json.json'}",
+                "--workspace",
+                f"staging={FIXTURES / 'dflook_json_output_path.json'}",
+                "--descriptions",
+                str(FIXTURES / "tofu_show_module.json"),
+                "--output-dir",
+                str(out),
+            ]
+        )
+        assert rc == 0
+        prod = (out / "prod" / "index.html").read_text(encoding="utf-8")
+        staging = (out / "staging" / "index.html").read_text(encoding="utf-8")
+        assert '<p class="desc">VPC attributes</p>' in prod
+        assert '<p class="desc">VPC attributes</p>' in staging
+
+    def test_missing_descriptions_file(self, tmp_path, capsys):
+        rc = main(
+            [
+                "--input",
+                str(FIXTURES / "tofu_output_json.json"),
+                "--descriptions",
+                str(tmp_path / "nope.json"),
+                "--output-dir",
+                str(tmp_path / "site"),
+            ]
+        )
+        assert rc == 2
+        assert "descriptions file not found" in capsys.readouterr().err
 
 
 # ---------------------------------------------------------------------------

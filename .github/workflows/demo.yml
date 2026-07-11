@@ -50,4 +50,5 @@ jobs:
           workspaces: |
             prod=demo-outputs.json
             staging=staging-outputs.json
+          module-dir: examples/demo
           title: tofu-garnish demo

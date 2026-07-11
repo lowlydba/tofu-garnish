@@ -1,0 +1,18 @@
+{
+  "format_version": "1.0",
+  "root_module": {
+    "outputs": {
+      "cluster_endpoint": {
+        "description": "Kubernetes API endpoint"
+      },
+      "vpc": {
+        "description": "VPC attributes"
+      },
+      "database_password": {
+        "description": "A sensitive value",
+        "sensitive": true
+      },
+      "no_description_here": {}
+    }
+  }
+}

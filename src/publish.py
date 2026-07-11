@@ -25,6 +25,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import time
@@ -69,14 +70,41 @@ def _default_api(method: str, path: str, payload: dict | None = None) -> dict:  
         raise ApiError(exc.code, exc.read().decode("utf-8", "replace")) from exc
 
 
+def _dump_module_descriptions(module_dir: str) -> str:
+    """Run OpenTofu to extract output descriptions from a module's config.
+
+    OpenTofu only: relies on ``tofu show -json -module=DIR`` (OpenTofu
+    >= 1.10), which statically parses the module source without init, state,
+    or providers. Terraform has no equivalent mode.
+    """
+    result = subprocess.run(
+        ["tofu", "show", "-json", f"-module={module_dir}"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(
+            "::error::'tofu show -json -module' failed; module-dir requires "
+            f"OpenTofu >= 1.10 on PATH: {result.stderr.strip()}",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as handle:
+        handle.write(result.stdout)
+        return handle.name
+
+
 def generate_site(site_dir: str) -> None:
     """Run the garnish generator into ``site_dir`` based on the environment."""
     workspaces = os.environ.get("GARNISH_WORKSPACES", "")
     outputs_file = os.environ.get("GARNISH_OUTPUTS_FILE", "")
     outputs = os.environ.get("GARNISH_OUTPUTS", "")
+    module_dir = os.environ.get("GARNISH_MODULE_DIR", "")
     title = os.environ.get("GARNISH_TITLE", "Tofu Outputs")
 
     argv = ["--output-dir", site_dir, "--title", title]
+    if module_dir:
+        argv += ["--descriptions", _dump_module_descriptions(module_dir)]
     if workspaces.strip():
         for line in workspaces.splitlines():
             if line.strip():

@@ -1,6 +1,7 @@
 """Tests for the Pages-branch publisher."""
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -75,7 +76,12 @@ def env(monkeypatch, tmp_path):
     monkeypatch.setenv("PAGES_BRANCH", "gh-pages")
     monkeypatch.setenv("GITHUB_OUTPUT", str(out))
     monkeypatch.setenv("GARNISH_TITLE", "Test Site")
-    for var in ("GARNISH_WORKSPACES", "GARNISH_OUTPUTS_FILE", "GARNISH_OUTPUTS"):
+    for var in (
+        "GARNISH_WORKSPACES",
+        "GARNISH_OUTPUTS_FILE",
+        "GARNISH_OUTPUTS",
+        "GARNISH_MODULE_DIR",
+    ):
         monkeypatch.delenv(var, raising=False)
     return out
 
@@ -139,6 +145,45 @@ class TestGenerateSite:
         with pytest.raises(SystemExit) as exc:
             generate_site(str(tmp_path / "site"))
         assert exc.value.code == 2
+
+    def test_module_dir_runs_tofu_show(self, env, monkeypatch, tmp_path):
+        monkeypatch.setenv("GARNISH_OUTPUTS_FILE", str(FIXTURES / "tofu_output_json.json"))
+        monkeypatch.setenv("GARNISH_MODULE_DIR", "examples/demo")
+        show_json = (FIXTURES / "tofu_show_module.json").read_text(encoding="utf-8")
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return subprocess.CompletedProcess(cmd, 0, stdout=show_json, stderr="")
+
+        monkeypatch.setattr(publish.subprocess, "run", fake_run)
+        site = tmp_path / "site"
+        generate_site(str(site))
+        assert calls == [["tofu", "show", "-json", "-module=examples/demo"]]
+        html = (site / "index.html").read_text(encoding="utf-8")
+        assert '<p class="desc">Kubernetes API endpoint</p>' in html
+
+    def test_module_dir_tofu_failure_exits_1(self, env, monkeypatch, tmp_path, capsys):
+        monkeypatch.setenv("GARNISH_OUTPUTS_FILE", str(FIXTURES / "tofu_output_json.json"))
+        monkeypatch.setenv("GARNISH_MODULE_DIR", "examples/demo")
+
+        def fake_run(cmd, **kwargs):
+            return subprocess.CompletedProcess(cmd, 1, stdout="", stderr="unknown flag")
+
+        monkeypatch.setattr(publish.subprocess, "run", fake_run)
+        with pytest.raises(SystemExit) as exc:
+            generate_site(str(tmp_path / "site"))
+        assert exc.value.code == 1
+        assert "OpenTofu >= 1.10" in capsys.readouterr().err
+
+    def test_no_module_dir_no_subprocess(self, env, monkeypatch, tmp_path):
+        monkeypatch.setenv("GARNISH_OUTPUTS_FILE", str(FIXTURES / "tofu_output_json.json"))
+
+        def boom(cmd, **kwargs):
+            raise AssertionError("subprocess should not run")
+
+        monkeypatch.setattr(publish.subprocess, "run", boom)
+        generate_site(str(tmp_path / "site"))
 
 
 # ---------------------------------------------------------------------------

@@ -133,6 +133,27 @@ concurrency:
   cancel-in-progress: false
 ```
 
+### Show output descriptions on the page (OpenTofu only)
+
+Tofu drops the `description` argument from `output -json`, but OpenTofu
+≥ 1.10 can extract it straight from your module source with
+`tofu show -json -module=<dir>` — no init, state, or providers needed. Point
+`module-dir` at your root module and descriptions appear under each output
+name (and become filterable):
+
+```yaml
+      - uses: lowlydba/tofu-garnish@v1
+        with:
+          outputs-file: outputs.json
+          module-dir: my-terraform-config
+```
+
+> **OpenTofu only.** This requires `tofu` ≥ 1.10 on the runner's PATH.
+> Terraform's `show` command has no configuration mode, so `module-dir`
+> will not work with Terraform — omit it and the page simply renders
+> without descriptions. tofu-garnish is a Tofu-focused project; Terraform
+> compatibility is best-effort for everything else.
+
 ### Use it without dflook actions
 
 Pipe `tofu output -json` (or `terraform output -json`) to a file and point
@@ -216,6 +237,7 @@ the demo workflow publishes them to this repo's Pages.
 | `outputs-file` | no*      | —                   | Path to a JSON outputs file: the `json_output_path` file from `dflook/terraform-output`, or the output of `tofu output -json`.                   |
 | `outputs`      | no*      | —                   | Inline JSON string of outputs, e.g. `toJson(steps.<id>.outputs)` from a `dflook/terraform-output` step. Ignored if `outputs-file` is set.        |
 | `workspaces`   | no*      | —                   | Multiline `name=path` pairs for multi-workspace sites. Only the named workspaces are overwritten on deploy. Takes precedence over other inputs.  |
+| `module-dir`   | no       | —                   | **OpenTofu ≥ 1.10 only.** Root module directory; descriptions are extracted with `tofu show -json -module` and rendered on the page.             |
 | `title`        | no       | `Tofu Outputs`      | Title shown on the generated page(s).                                                                                                            |
 | `output-dir`   | no       | `tofu-garnish-site` | Where the site is written when `deploy` is `"false"`.                                                                                            |
 | `deploy`       | no       | `"true"`            | Commit the site to the Pages branch. Set `"false"` to only generate HTML.                                                                        |
@@ -273,6 +295,9 @@ usage: garnish [-h] [--input INPUT] [--workspace NAME=PATH] [--merge]
 
 --input       Path to a JSON outputs file, or '-' for stdin (default).
 --workspace   Named outputs file, repeatable; builds a multi-workspace site.
+--descriptions  JSON from OpenTofu's 'tofu show -json -module=DIR' (or a
+                plain {"name": "description"} map); rendered under each
+                output. OpenTofu only.
 --merge       Preserve workspaces recorded in the output dir's manifest.json.
 --output-dir  Directory to write the site into (default: site).
 --title       Page title (default: 'Tofu Outputs').
@@ -313,6 +338,16 @@ for the workspaces you named (via the Git Data API's `base_tree` — no
 clone, no git credential juggling) and everything else on the branch is
 preserved. Push races between concurrent tenant deploys are retried
 against the fresh branch tip.
+
+### Why "OpenTofu only" for descriptions?
+
+The `description` argument on `output` blocks never makes it into
+`output -json` or state — it exists only in configuration. OpenTofu 1.10
+added configuration inspection to `show` (`-config` and `-module=DIR`
+modes); `-module` even works as a pure static parse, with no init, state,
+or providers. Terraform has no equivalent, and parsing HCL ourselves would
+violate the KISS budget. This is a Tofu-focused project, so the feature
+follows the Tofu toolchain.
 
 ### <a name="sensitive-values"></a>How are sensitive values handled?
 

@@ -34,6 +34,15 @@ inputs:
       Takes precedence over outputs-file and outputs.
     required: false
     default: ""
+  module-dir:
+    description: >-
+      Path to the OpenTofu root module directory. When set, output
+      descriptions are extracted from the module source with
+      `tofu show -json -module=<dir>` and shown on the page. OpenTofu only:
+      requires tofu >= 1.10 on PATH (Terraform's show command has no
+      configuration mode). Applies to all listed workspaces.
+    required: false
+    default: ""
   title:
     description: Title for the generated page.
     required: false
@@ -79,6 +88,7 @@ runs:
         GARNISH_OUTPUTS: ${{ inputs.outputs }}
         GARNISH_OUTPUTS_FILE: ${{ inputs.outputs-file }}
         GARNISH_WORKSPACES: ${{ inputs.workspaces }}
+        GARNISH_MODULE_DIR: ${{ inputs.module-dir }}
         GARNISH_TITLE: ${{ inputs.title }}
         GARNISH_OUTPUT_DIR: ${{ inputs.output-dir }}
         GARNISH_DEPLOY: ${{ inputs.deploy }}

@@ -175,6 +175,7 @@ jobs:
         with:
           workspaces: |
             prod=demo-outputs.json
+          module-dir: examples/demo
           title: Tofu E2E
           output-dir: e2e-site
           deploy: "false"
@@ -197,6 +198,7 @@ jobs:
           grep -q "subnet-053008016a2c1768c" e2e-site/prod/index.html
           grep -q "staging.example.com" e2e-site/staging/index.html
           grep -q "(sensitive)" e2e-site/prod/index.html
+          grep -q '<p class="desc">Kubernetes API endpoint</p>' e2e-site/prod/index.html
           if grep -q "s3cr3t-hunter2" e2e-site/prod/index.html; then
             echo "::error::sensitive tofu output leaked into generated page"
             exit 1

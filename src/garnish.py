@@ -35,6 +35,7 @@ class Output:
     name: str
     value: object
     sensitive: bool = False
+    description: str = ""
 
 
 @dataclass
@@ -102,6 +103,39 @@ def parse_outputs(text: str) -> list[Output]:
 
     outputs.sort(key=lambda o: o.name.lower())
     return outputs
+
+
+def parse_descriptions(text: str) -> dict[str, str]:
+    """Parse output descriptions from ``tofu show -json`` configuration JSON.
+
+    OpenTofu only: ``tofu show -json -module=DIR`` (or ``-config``) emits the
+    configuration representation, whose ``root_module.outputs`` entries carry
+    the ``description`` argument that ``tofu output -json`` drops. A plain
+    ``{"name": "description"}`` map is accepted too.
+    """
+    try:
+        data = json.loads(text)
+    except ValueError as exc:
+        raise ValueError(f"descriptions input is not valid JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError("descriptions input must be a JSON object")
+
+    outputs = data.get("root_module", {}).get("outputs") if "root_module" in data else data
+    if not isinstance(outputs, dict):
+        return {}
+    descriptions: dict[str, str] = {}
+    for name, meta in outputs.items():
+        if isinstance(meta, str):
+            descriptions[name] = meta
+        elif isinstance(meta, dict) and isinstance(meta.get("description"), str):
+            descriptions[name] = meta["description"]
+    return descriptions
+
+
+def apply_descriptions(outputs: list[Output], descriptions: dict[str, str]) -> None:
+    """Attach descriptions to matching outputs in place."""
+    for output in outputs:
+        output.description = descriptions.get(output.name, "")
 
 
 # ---------------------------------------------------------------------------
@@ -231,11 +265,14 @@ def _render_output(output: Output) -> str:
     else:
         body = _render_value(output.value)
         search = " ".join([output.name, *_search_terms(output.value)]).lower()
+    if output.description:
+        search = f"{search} {output.description.lower()}"
+    desc = f'<p class="desc">{_esc(output.description)}</p>' if output.description else ""
     return (
         f'<section class="output" id="{_esc(output.name)}" '
         f'data-name="{_esc(output.name.lower())}" data-search="{_esc(search)}">'
         f'<h2><a href="#{_esc(output.name)}">{_esc(output.name)}</a></h2>'
-        f"{body}</section>"
+        f"{desc}{body}</section>"
     )
 
 
@@ -251,6 +288,7 @@ section.output { border: 1px solid var(--border); border-radius: 6px; padding: 0
 section.output h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
 section.output h2 a { color: var(--accent); text-decoration: none; }
 section.output h2 a:hover { text-decoration: underline; }
+.desc { color: var(--muted); font-size: 0.9rem; margin: -0.35rem 0 0.5rem; }
 table { border-collapse: collapse; width: 100%; margin: 0.25rem 0; }
 th, td { border: 1px solid var(--border); padding: 0.3rem 0.6rem; text-align: left; vertical-align: top; font-size: 0.9rem; }
 table.kv > tbody > tr > th { width: 30%; font-weight: 600; }
@@ -416,12 +454,22 @@ def _load_outputs_file(path_str: str) -> list[Output]:
     return parse_outputs(path.read_text(encoding="utf-8"))
 
 
+def _load_descriptions(args: argparse.Namespace) -> dict[str, str]:
+    if not args.descriptions:
+        return {}
+    path = Path(args.descriptions)
+    if not path.is_file():
+        raise ValueError(f"descriptions file not found: {path}")
+    return parse_descriptions(path.read_text(encoding="utf-8"))
+
+
 def _run_single(args: argparse.Namespace) -> int:
     try:
         if args.input == "-":
             outputs = parse_outputs(sys.stdin.read())
         else:
             outputs = _load_outputs_file(args.input)
+        apply_descriptions(outputs, _load_descriptions(args))
     except ValueError as exc:
         print(f"garnish: {exc}", file=sys.stderr)
         return 2
@@ -453,6 +501,7 @@ def _run_workspaces(args: argparse.Namespace) -> int:
     workspaces: list[tuple[str, str, list[Output]]] = []
     seen_slugs: dict[str, str] = {}
     try:
+        descriptions = _load_descriptions(args)
         for spec in args.workspace:
             name, path = parse_workspace_spec(spec)
             slug = slugify(name)
@@ -462,7 +511,9 @@ def _run_workspaces(args: argparse.Namespace) -> int:
                     f"(both map to directory {slug!r})"
                 )
             seen_slugs[slug] = name
-            workspaces.append((name, slug, _load_outputs_file(path)))
+            outputs = _load_outputs_file(path)
+            apply_descriptions(outputs, descriptions)
+            workspaces.append((name, slug, outputs))
     except ValueError as exc:
         print(f"garnish: {exc}", file=sys.stderr)
         return 2
@@ -528,6 +579,17 @@ def main(argv: list[str] | None = None) -> int:
             "Named outputs file, repeatable. When given, a page is generated "
             "per workspace under its own subdirectory, plus a landing page "
             "linking them. Overrides --input."
+        ),
+    )
+    parser.add_argument(
+        "--descriptions",
+        default="",
+        metavar="PATH",
+        help=(
+            "JSON file with output descriptions, as produced by OpenTofu's "
+            "'tofu show -json -module=DIR' (or -config), or a plain "
+            '{"name": "description"} map. OpenTofu only: Terraform\'s show '
+            "command has no configuration mode. Applies to all workspaces."
         ),
     )
     parser.add_argument(
