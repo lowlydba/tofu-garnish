@@ -31,8 +31,8 @@ button.copy:hover { color: inherit; }
 .sensitive { color: var(--muted); }
 footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
 .back { margin: 0 0 0.25rem; font-size: 0.9rem; }
-.back a, .ws h2 a { color: var(--accent); text-decoration: none; }
-.back a:hover, .ws h2 a:hover { text-decoration: underline; }
+.back a, .ws h2 a, a.src { color: var(--accent); text-decoration: none; }
+.back a:hover, .ws h2 a:hover, a.src:hover { text-decoration: underline; }
 section.ws p { color: var(--muted); margin: 0; }
 .no-match { color: var(--muted); font-style: italic; display: none; }
 </style>
@@ -40,7 +40,7 @@ section.ws p { color: var(--muted); margin: 0; }
 <body>
 <header>
 <p class="back"><a href="../">← all workspaces</a></p><h1>tofu-garnish demo · prod</h1>
-<p>7 outputs · generated 2026-07-11 18:07 UTC</p>
+<p>7 outputs · generated 2026-07-14 22:06 UTC · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a></p>
 <input id="filter" type="search" placeholder="Filter outputs by name or value…" aria-label="Filter outputs by name or value">
 </header>
 <main>
@@ -62,7 +62,7 @@ section.ws p { color: var(--muted); margin: 0; }
 }">copy</button></td></tr></tbody></table></section>
 <p id="no-match" class="no-match">No outputs match the filter.</p>
 </main>
-<footer>Served with 💚 by 🌿 tofu-garnish.</footer>
+<footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
 <script>
 document.getElementById('filter').addEventListener('input', function () {
   var q = this.value.trim().toLowerCase();
