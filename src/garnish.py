@@ -25,6 +25,8 @@ from pathlib import Path
 
 __version__ = "1.0.0"
 
+REPO_URL = "https://github.com/lowlydba/tofu-garnish"
+
 MASK = "••••••••"
 
 
@@ -46,6 +48,8 @@ class Page:
     outputs: list[Output] = field(default_factory=list)
     generated_at: str = ""
     back_href: str = ""
+    source_url: str = ""
+    footer: bool = True
 
 
 # ---------------------------------------------------------------------------
@@ -302,8 +306,8 @@ button.copy:hover { color: inherit; }
 .sensitive { color: var(--muted); }
 footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
 .back { margin: 0 0 0.25rem; font-size: 0.9rem; }
-.back a, .ws h2 a { color: var(--accent); text-decoration: none; }
-.back a:hover, .ws h2 a:hover { text-decoration: underline; }
+.back a, .ws h2 a, a.src { color: var(--accent); text-decoration: none; }
+.back a:hover, .ws h2 a:hover, a.src:hover { text-decoration: underline; }
 section.ws p { color: var(--muted); margin: 0; }
 .no-match { color: var(--muted); font-style: italic; display: none; }
 """
@@ -333,9 +337,22 @@ def _plural(count: int, noun: str) -> str:
     return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
 
 
-def _document(title: str, header: str, main: str, script: str = "") -> str:
+def _source_link(source_url: str) -> str:
+    """Meta-line fragment linking back to the repo the outputs come from."""
+    if not source_url:
+        return ""
+    return f' · <a class="src" href="{_esc(source_url)}">source repository</a>'
+
+
+def _document(title: str, header: str, main: str, script: str = "", footer: bool = True) -> str:
     """Wrap header/main content in the shared HTML shell."""
     script_tag = f"<script>\n{script}</script>\n" if script else ""
+    footer_tag = (
+        "<footer>Served with \U0001f49a by "
+        f'\U0001f33f <a class="src" href="{REPO_URL}">tofu-garnish</a>.</footer>\n'
+        if footer
+        else ""
+    )
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -351,8 +368,7 @@ def _document(title: str, header: str, main: str, script: str = "") -> str:
 {header}</header>
 <main>
 {main}</main>
-<footer>Served with \U0001f49a by \U0001f33f tofu-garnish.</footer>
-{script_tag}</body>
+{footer_tag}{script_tag}</body>
 </html>
 """
 
@@ -370,12 +386,13 @@ def render_page(page: Page) -> str:
     )
     header = (
         f"{back}<h1>{_esc(page.title)}</h1>\n"
-        f"<p>{_plural(len(page.outputs), 'output')} · generated {_esc(page.generated_at)}</p>\n"
+        f"<p>{_plural(len(page.outputs), 'output')} · generated {_esc(page.generated_at)}"
+        f"{_source_link(page.source_url)}</p>\n"
         '<input id="filter" type="search" placeholder="Filter outputs by name or value…"'
         ' aria-label="Filter outputs by name or value">\n'
     )
     main = f'{sections}\n<p id="no-match" class="no-match">No outputs match the filter.</p>\n'
-    return _document(page.title, header, main, script=_JS)
+    return _document(page.title, header, main, script=_JS, footer=page.footer)
 
 
 # ---------------------------------------------------------------------------
@@ -399,7 +416,11 @@ def parse_workspace_spec(spec: str) -> tuple[str, str]:
 
 
 def render_landing(
-    title: str, workspaces: list[tuple[str, str, int, str]], generated_at: str
+    title: str,
+    workspaces: list[tuple[str, str, int, str]],
+    generated_at: str,
+    source_url: str = "",
+    footer: bool = True,
 ) -> str:
     """Render the landing page linking to per-workspace pages.
 
@@ -415,9 +436,10 @@ def render_landing(
         )
     header = (
         f"<h1>{_esc(title)}</h1>\n"
-        f"<p>{_plural(len(workspaces), 'workspace')} · generated {_esc(generated_at)}</p>\n"
+        f"<p>{_plural(len(workspaces), 'workspace')} · generated {_esc(generated_at)}"
+        f"{_source_link(source_url)}</p>\n"
     )
-    return _document(title, header, "".join(sections) + "\n")
+    return _document(title, header, "".join(sections) + "\n", footer=footer)
 
 
 # ---------------------------------------------------------------------------
@@ -462,7 +484,13 @@ def _run_single(args: argparse.Namespace) -> int:
         print(f"garnish: {exc}", file=sys.stderr)
         return 2
 
-    page = Page(title=args.title, outputs=outputs, generated_at=_now_utc())
+    page = Page(
+        title=args.title,
+        outputs=outputs,
+        generated_at=_now_utc(),
+        source_url=args.source_url,
+        footer=not args.no_footer,
+    )
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "index.html"
@@ -515,6 +543,8 @@ def _run_workspaces(args: argparse.Namespace) -> int:
             outputs=outputs,
             generated_at=generated_at,
             back_href="../",
+            source_url=args.source_url,
+            footer=not args.no_footer,
         )
         ws_dir = out_dir / slug
         ws_dir.mkdir(parents=True, exist_ok=True)
@@ -535,6 +565,8 @@ def _run_workspaces(args: argparse.Namespace) -> int:
             for slug, entry in entries
         ],
         generated_at,
+        source_url=args.source_url,
+        footer=not args.no_footer,
     )
     (out_dir / "index.html").write_text(landing, encoding="utf-8")
     manifest = {
@@ -597,6 +629,20 @@ def main(argv: list[str] | None = None) -> int:
         "--title",
         default="Tofu Outputs",
         help="Page title (default: 'Tofu Outputs').",
+    )
+    parser.add_argument(
+        "--source-url",
+        default="",
+        metavar="URL",
+        help=(
+            "URL of the repository the outputs come from. When set, a "
+            "'source repository' link is rendered on every page."
+        ),
+    )
+    parser.add_argument(
+        "--no-footer",
+        action="store_true",
+        help="Omit the tofu-garnish footer from generated pages.",
     )
     parser.add_argument("--version", action="version", version=__version__)
     args = parser.parse_args(argv)

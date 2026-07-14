@@ -14,6 +14,7 @@ from garnish import (
     parse_descriptions,
     parse_outputs,
     parse_workspace_spec,
+    render_landing,
     render_page,
     slugify,
 )
@@ -280,6 +281,51 @@ class TestPageChrome:
     def test_data_search_includes_scalar_value(self):
         html = render('{"host": "EXAMPLE.com"}')
         assert 'data-search="host example.com"' in html
+
+    def test_source_url_renders_link(self):
+        html = render_page(
+            Page(
+                title="T",
+                outputs=parse_outputs('{"a": 1}'),
+                generated_at="now",
+                source_url="https://github.com/octo/infra",
+            )
+        )
+        assert '<a class="src" href="https://github.com/octo/infra">source repository</a>' in html
+
+    def test_source_url_omitted_by_default(self):
+        assert "source repository" not in render('{"a": 1}')
+
+    def test_source_url_is_escaped(self):
+        html = render_page(
+            Page(
+                title="T",
+                outputs=[],
+                generated_at="now",
+                source_url='https://example.com/"><script>',
+            )
+        )
+        assert "<script>bad" not in html
+        assert '"><script>' not in html
+
+    def test_landing_source_url_renders_link(self):
+        html = render_landing(
+            "T", [("prod", "prod", 1, "now")], "now", source_url="https://github.com/octo/infra"
+        )
+        assert '<a class="src" href="https://github.com/octo/infra">source repository</a>' in html
+
+    def test_footer_links_to_tofu_garnish_repo(self):
+        html = render('{"a": 1}')
+        assert f'<footer>Served with 💚 by 🌿 <a class="src" href="{garnish.REPO_URL}">' in html
+        assert "tofu-garnish</a>." in html
+
+    def test_footer_can_be_disabled(self):
+        html = render_page(Page(title="T", outputs=[], generated_at="now", footer=False))
+        assert "<footer>" not in html
+
+    def test_landing_footer_can_be_disabled(self):
+        html = render_landing("T", [("prod", "prod", 1, "now")], "now", footer=False)
+        assert "<footer>" not in html
 
     def test_data_search_includes_nested_keys_and_leaves(self):
         html = render('{"vpc": {"tags": {"Team": "Platform"}}, "subnets": [{"id": "s-1"}]}')

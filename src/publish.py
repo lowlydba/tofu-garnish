@@ -11,6 +11,8 @@ Driven entirely by environment variables (set by action.yml):
 * ``GARNISH_WORKSPACES`` / ``GARNISH_OUTPUTS_FILE`` / ``GARNISH_OUTPUTS`` --
   what to generate (same precedence as the action inputs).
 * ``GARNISH_TITLE`` -- page title.
+* ``GARNISH_SOURCE_URL`` -- repository URL rendered as a link-back on pages.
+* ``GARNISH_FOOTER`` -- "true" to render the tofu-garnish footer.
 * ``GARNISH_DEPLOY`` -- "true" to publish; anything else only generates
   into ``GARNISH_OUTPUT_DIR``.
 * ``GARNISH_OUTPUT_DIR`` -- site directory when not deploying.
@@ -101,8 +103,14 @@ def generate_site(site_dir: str) -> None:
     outputs = os.environ.get("GARNISH_OUTPUTS", "")
     module_dir = os.environ.get("GARNISH_MODULE_DIR", "")
     title = os.environ.get("GARNISH_TITLE", "Tofu Outputs")
+    source_url = os.environ.get("GARNISH_SOURCE_URL", "")
+    footer = os.environ.get("GARNISH_FOOTER", "true")
 
     argv = ["--output-dir", site_dir, "--title", title]
+    if source_url:
+        argv += ["--source-url", source_url]
+    if footer != "true":
+        argv.append("--no-footer")
     if module_dir:
         argv += ["--descriptions", _dump_module_descriptions(module_dir)]
     if workspaces.strip():

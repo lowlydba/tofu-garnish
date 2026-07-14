@@ -45,6 +45,20 @@ inputs:
     description: Title for the generated page.
     required: false
     default: Tofu Outputs
+  source-repo-url:
+    description: >-
+      URL of the repository containing the Tofu/Terraform configuration the
+      outputs come from. Rendered as a "source repository" link on every
+      generated page. Set to "" to omit the link.
+    required: false
+    default: ${{ github.server_url }}/${{ github.repository }}
+  footer:
+    description: >-
+      Whether to render the "Served with 💚 by 🌿 tofu-garnish" footer, which
+      links to the tofu-garnish repository, on generated pages. Set to
+      "false" to omit it.
+    required: false
+    default: "true"
   output-dir:
     description: >-
       Directory the generated site is written to. Only used when deploy is
@@ -88,6 +102,8 @@ runs:
         GARNISH_WORKSPACES: ${{ inputs.workspaces }}
         GARNISH_MODULE_DIR: ${{ inputs.module-dir }}
         GARNISH_TITLE: ${{ inputs.title }}
+        GARNISH_SOURCE_URL: ${{ inputs.source-repo-url }}
+        GARNISH_FOOTER: ${{ inputs.footer }}
         GARNISH_OUTPUT_DIR: ${{ inputs.output-dir }}
         GARNISH_DEPLOY: ${{ inputs.deploy }}
         GARNISH_TOKEN: ${{ inputs.github-token }}

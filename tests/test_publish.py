@@ -81,6 +81,8 @@ def env(monkeypatch, tmp_path):
         "GARNISH_OUTPUTS_FILE",
         "GARNISH_OUTPUTS",
         "GARNISH_MODULE_DIR",
+        "GARNISH_SOURCE_URL",
+        "GARNISH_FOOTER",
     ):
         monkeypatch.delenv(var, raising=False)
     return out
@@ -108,6 +110,34 @@ class TestGenerateSite:
         site = tmp_path / "site"
         generate_site(str(site))
         assert "example.com" in (site / "index.html").read_text(encoding="utf-8")
+
+    def test_source_url_renders_link(self, env, monkeypatch, tmp_path):
+        monkeypatch.setenv("GARNISH_OUTPUTS", '{"host": "example.com"}')
+        monkeypatch.setenv("GARNISH_SOURCE_URL", "https://github.com/octo/infra")
+        site = tmp_path / "site"
+        generate_site(str(site))
+        html = (site / "index.html").read_text(encoding="utf-8")
+        assert '<a class="src" href="https://github.com/octo/infra">source repository</a>' in html
+
+    def test_empty_source_url_omits_link(self, env, monkeypatch, tmp_path):
+        monkeypatch.setenv("GARNISH_OUTPUTS", '{"host": "example.com"}')
+        monkeypatch.setenv("GARNISH_SOURCE_URL", "")
+        site = tmp_path / "site"
+        generate_site(str(site))
+        assert "source repository" not in (site / "index.html").read_text(encoding="utf-8")
+
+    def test_footer_defaults_on(self, env, monkeypatch, tmp_path):
+        monkeypatch.setenv("GARNISH_OUTPUTS", '{"host": "example.com"}')
+        site = tmp_path / "site"
+        generate_site(str(site))
+        assert "<footer>" in (site / "index.html").read_text(encoding="utf-8")
+
+    def test_footer_false_omits_footer(self, env, monkeypatch, tmp_path):
+        monkeypatch.setenv("GARNISH_OUTPUTS", '{"host": "example.com"}')
+        monkeypatch.setenv("GARNISH_FOOTER", "false")
+        site = tmp_path / "site"
+        generate_site(str(site))
+        assert "<footer>" not in (site / "index.html").read_text(encoding="utf-8")
 
     def test_workspaces_mode_ignores_blank_lines(self, env, monkeypatch, tmp_path):
         monkeypatch.setenv(

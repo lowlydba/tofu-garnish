@@ -247,6 +247,8 @@ the demo workflow publishes them to this repo's Pages.
 | `workspaces`   | no*      | none                | Multiline `name=path` pairs for multi-workspace sites. Only the named workspaces are overwritten on deploy. Takes precedence over other inputs.  |
 | `module-dir`   | no       | none                | **OpenTofu ≥ 1.10 only.** Root module directory; descriptions are extracted with `tofu show -json -module` and rendered on the page.             |
 | `title`        | no       | `Tofu Outputs`      | Title shown on the generated page(s).                                                                                                            |
+| `source-repo-url` | no    | current repository  | URL of the repo the outputs come from, rendered as a "source repository" link on each page. Set to `""` to omit the link.                        |
+| `footer`       | no       | `"true"`            | Render the "Served with 💚 by 🌿 tofu-garnish" footer (links to this repo) on generated pages. Set `"false"` to omit it.                          |
 | `output-dir`   | no       | `tofu-garnish-site` | Where the site is written when `deploy` is `"false"`.                                                                                            |
 | `deploy`       | no       | `"true"`            | Commit the site to the Pages branch. Set `"false"` to only generate HTML.                                                                        |
 | `pages-branch` | no       | `gh-pages`          | Branch GitHub Pages serves from. Created automatically if missing.                                                                               |
