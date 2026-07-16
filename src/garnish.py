@@ -231,7 +231,7 @@ def _render_list(value: list, depth: int) -> str:
         + "</li>"
         for v in value
     )
-    return f'<ol class="seq">{items}</ol>'
+    return f'<ul class="seq">{items}</ul>'
 
 
 def _render_value(value: object, depth: int = 0) -> str:
@@ -298,7 +298,8 @@ th, td { border: 1px solid var(--border); padding: 0.3rem 0.6rem; text-align: le
 table.kv > tbody > tr > th { width: 30%; font-weight: 600; }
 td.act, th.act { width: 1%; white-space: nowrap; text-align: center; }
 code { font-family: ui-monospace, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
-ol.seq { margin: 0.25rem 0; padding-left: 1.5rem; }
+ul.seq { margin: 0.25rem 0; padding-left: 1.5rem; list-style: disc; }
+ul.seq li::marker { color: var(--muted); }
 .scalar { display: inline-flex; align-items: baseline; gap: 0.5rem; max-width: 100%; }
 button.copy { font-size: 0.7rem; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; padding: 0.1rem 0.4rem; }
 button.copy:hover { color: inherit; }

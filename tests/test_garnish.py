@@ -196,9 +196,9 @@ class TestRenderNested:
         assert html.count('<table class="kv">') == 2
         assert "<code>leaf</code>" in html
 
-    def test_list_of_scalars_becomes_ordered_list(self):
+    def test_list_of_scalars_becomes_unordered_list(self):
         html = render('{"arns": ["arn:a", "arn:b"]}')
-        assert '<ol class="seq">' in html
+        assert '<ul class="seq">' in html
         assert "<code>arn:a</code>" in html
 
     def test_list_of_objects_becomes_columnar_table(self):
@@ -213,9 +213,9 @@ class TestRenderNested:
         assert '<th scope="col">b</th>' in html
         assert '<span class="empty">—</span>' in html
 
-    def test_mixed_list_falls_back_to_ordered_list(self):
+    def test_mixed_list_falls_back_to_unordered_list(self):
         html = render('{"items": [{"a": 1}, "plain"]}')
-        assert '<ol class="seq">' in html
+        assert '<ul class="seq">' in html
         assert '<table class="grid">' not in html
 
     def test_empty_containers(self):
