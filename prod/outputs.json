@@ -1,0 +1,34 @@
+{
+  "cluster_endpoint": "https://k8s.example.com:6443",
+  "instance_count": 3,
+  "is_production": true,
+  "queue_arns": [
+    "arn:aws:sqs:us-east-1:123456789012:orders",
+    "arn:aws:sqs:us-east-1:123456789012:payments"
+  ],
+  "subnets": [
+    {
+      "az": "us-east-1a",
+      "cidr": "10.0.0.0/24",
+      "id": "subnet-053008016a2c1768c"
+    },
+    {
+      "az": "us-east-1b",
+      "cidr": "10.0.1.0/24",
+      "id": "subnet-07d4ce437c43eba2f"
+    },
+    {
+      "az": "us-east-1c",
+      "cidr": "10.0.2.0/24",
+      "id": "subnet-0a5f8c3a20023b8c0"
+    }
+  ],
+  "vpc": {
+    "cidr_block": "10.0.0.0/16",
+    "id": "vpc-01463b6b84e1454ce",
+    "tags": {
+      "Environment": "prod",
+      "Team": "platform"
+    }
+  }
+}

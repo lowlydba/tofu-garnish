@@ -1,0 +1,12 @@
+{
+  "instance_count": 1,
+  "service_hostname": "staging.example.com",
+  "vpc": {
+    "cidr_block": "10.1.0.0/16",
+    "id": "vpc-0staging1234567890",
+    "tags": {
+      "Environment": "staging",
+      "Team": "platform"
+    }
+  }
+}
