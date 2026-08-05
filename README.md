@@ -90,6 +90,7 @@ Expected result:
 - One copy button per row; nested values copy as pretty JSON.
 - A filter box that matches names, keys, and values.
 - Sensitive outputs masked.
+- A meta line linking the commit and workflow run that produced the page.
 
 That's it. Every push regenerates and republishes the page.
 

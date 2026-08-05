@@ -9,11 +9,13 @@ import garnish
 from garnish import (
     MASK,
     Page,
+    Provenance,
     apply_descriptions,
     main,
     parse_descriptions,
     parse_outputs,
     parse_workspace_spec,
+    provenance_from_env,
     render_landing,
     render_page,
     slugify,
@@ -317,6 +319,74 @@ class TestPageChrome:
         )
         assert '<a class="src" href="https://github.com/octo/infra">source repository</a>' in html
 
+    def test_provenance_renders_commit_and_run_links(self):
+        html = render_page(
+            Page(
+                title="T",
+                outputs=parse_outputs('{"a": 1}'),
+                generated_at="now",
+                provenance=Provenance(
+                    commit_sha="abcdef1234567890",
+                    commit_url="https://github.com/octo/infra/commit/abcdef1234567890",
+                    run_url="https://github.com/octo/infra/actions/runs/42",
+                ),
+            )
+        )
+        assert (
+            'commit <a class="src" '
+            'href="https://github.com/octo/infra/commit/abcdef1234567890">abcdef1</a>' in html
+        )
+        assert (
+            '<a class="src" href="https://github.com/octo/infra/actions/runs/42">'
+            "workflow run</a>" in html
+        )
+
+    def test_provenance_without_run_url_omits_run_link(self):
+        html = render_page(
+            Page(
+                title="T",
+                outputs=[],
+                generated_at="now",
+                provenance=Provenance(commit_sha="abcdef1", commit_url="https://c"),
+            )
+        )
+        assert "commit " in html
+        assert "workflow run" not in html
+
+    def test_provenance_omitted_by_default(self):
+        html = render('{"a": 1}')
+        assert "commit " not in html
+        assert "workflow run" not in html
+
+    def test_provenance_is_escaped(self):
+        html = render_page(
+            Page(
+                title="T",
+                outputs=[],
+                generated_at="now",
+                provenance=Provenance(
+                    commit_sha='"><script>bad',
+                    commit_url='https://example.com/"><script>bad',
+                    run_url='https://example.com/"><script>bad',
+                ),
+            )
+        )
+        assert "<script>bad" not in html
+
+    def test_landing_provenance_renders_links(self):
+        html = render_landing(
+            "T",
+            [("prod", "prod", 1, "now", "2026-01-01T00:00:00+00:00")],
+            "now",
+            provenance=Provenance(
+                commit_sha="abcdef1234567890",
+                commit_url="https://github.com/octo/infra/commit/abcdef1234567890",
+                run_url="https://github.com/octo/infra/actions/runs/42",
+            ),
+        )
+        assert ">abcdef1</a>" in html
+        assert "workflow run</a>" in html
+
     def test_footer_links_to_tofu_garnish_repo(self):
         html = render('{"a": 1}')
         assert f'<footer>Served with 💚 by 🌿 <a class="src" href="{garnish.REPO_URL}">' in html
@@ -545,6 +615,50 @@ class TestCli:
             main(["--version"])
         assert exc.value.code == 0
         assert garnish.__version__ in capsys.readouterr().out
+
+    def test_actions_env_renders_provenance(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("GITHUB_SHA", "abcdef1234567890")
+        monkeypatch.setenv("GITHUB_REPOSITORY", "octo/infra")
+        monkeypatch.setenv("GITHUB_SERVER_URL", "https://github.com")
+        monkeypatch.setenv("GITHUB_RUN_ID", "42")
+        out = tmp_path / "site"
+        main(["--input", str(FIXTURES / "dflook_json_output_path.json"), "--output-dir", str(out)])
+        html = (out / "index.html").read_text(encoding="utf-8")
+        assert 'href="https://github.com/octo/infra/commit/abcdef1234567890">abcdef1</a>' in html
+        assert 'href="https://github.com/octo/infra/actions/runs/42">workflow run</a>' in html
+
+
+class TestProvenanceFromEnv:
+    def test_none_without_actions_env(self):
+        assert provenance_from_env() is None
+
+    @pytest.mark.parametrize("missing", ["GITHUB_SHA", "GITHUB_REPOSITORY", "GITHUB_SERVER_URL"])
+    def test_none_when_any_required_var_missing(self, monkeypatch, missing):
+        monkeypatch.setenv("GITHUB_SHA", "abcdef1234567890")
+        monkeypatch.setenv("GITHUB_REPOSITORY", "octo/infra")
+        monkeypatch.setenv("GITHUB_SERVER_URL", "https://github.com")
+        monkeypatch.delenv(missing)
+        assert provenance_from_env() is None
+
+    def test_full_env(self, monkeypatch):
+        monkeypatch.setenv("GITHUB_SHA", "abcdef1234567890")
+        monkeypatch.setenv("GITHUB_REPOSITORY", "octo/infra")
+        monkeypatch.setenv("GITHUB_SERVER_URL", "https://github.com/")
+        monkeypatch.setenv("GITHUB_RUN_ID", "42")
+        prov = provenance_from_env()
+        assert prov == Provenance(
+            commit_sha="abcdef1234567890",
+            commit_url="https://github.com/octo/infra/commit/abcdef1234567890",
+            run_url="https://github.com/octo/infra/actions/runs/42",
+        )
+
+    def test_no_run_id_omits_run_url(self, monkeypatch):
+        monkeypatch.setenv("GITHUB_SHA", "abcdef1234567890")
+        monkeypatch.setenv("GITHUB_REPOSITORY", "octo/infra")
+        monkeypatch.setenv("GITHUB_SERVER_URL", "https://github.com")
+        prov = provenance_from_env()
+        assert prov is not None
+        assert prov.run_url == ""
 
 
 # ---------------------------------------------------------------------------

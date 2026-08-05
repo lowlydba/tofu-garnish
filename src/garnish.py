@@ -40,6 +40,15 @@ class Output:
     description: str = ""
 
 
+@dataclass(frozen=True)
+class Provenance:
+    """Commit and workflow run that produced a publish."""
+
+    commit_sha: str
+    commit_url: str
+    run_url: str = ""
+
+
 @dataclass
 class Page:
     """Everything needed to render the page."""
@@ -51,6 +60,27 @@ class Page:
     source_url: str = ""
     footer: bool = True
     json_href: str = ""
+    provenance: Provenance | None = None
+
+
+def provenance_from_env() -> Provenance | None:
+    """Build provenance from the standard Actions environment, if present.
+
+    Requires ``GITHUB_SHA``, ``GITHUB_REPOSITORY`` and ``GITHUB_SERVER_URL``;
+    outside Actions (plain CLI use) these are absent and provenance is
+    omitted. The run link additionally needs ``GITHUB_RUN_ID``.
+    """
+    sha = os.environ.get("GITHUB_SHA", "")
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    server = os.environ.get("GITHUB_SERVER_URL", "").rstrip("/")
+    if not (sha and repo and server):
+        return None
+    run_id = os.environ.get("GITHUB_RUN_ID", "")
+    return Provenance(
+        commit_sha=sha,
+        commit_url=f"{server}/{repo}/commit/{sha}",
+        run_url=f"{server}/{repo}/actions/runs/{run_id}" if run_id else "",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -363,6 +393,19 @@ def _json_link(json_href: str) -> str:
     return f' · <a class="src" href="{_esc(json_href)}">JSON</a>'
 
 
+def _provenance_html(provenance: Provenance | None) -> str:
+    """Meta-line fragment linking the commit and workflow run behind a publish."""
+    if provenance is None:
+        return ""
+    fragment = (
+        f' · commit <a class="src" href="{_esc(provenance.commit_url)}">'
+        f"{_esc(provenance.commit_sha[:7])}</a>"
+    )
+    if provenance.run_url:
+        fragment += f' · <a class="src" href="{_esc(provenance.run_url)}">workflow run</a>'
+    return fragment
+
+
 def _document(title: str, header: str, main: str, script: str = "", footer: bool = True) -> str:
     """Wrap header/main content in the shared HTML shell."""
     script_tag = f"<script>\n{script}</script>\n" if script else ""
@@ -407,7 +450,8 @@ def render_page(page: Page) -> str:
     header = (
         f"{back}<h1>{_esc(page.title)}</h1>\n"
         f"<p>{_plural(len(page.outputs), 'output')} · generated {_esc(page.generated_at)}"
-        f"{_source_link(page.source_url)}{_json_link(page.json_href)}</p>\n"
+        f"{_provenance_html(page.provenance)}{_source_link(page.source_url)}"
+        f"{_json_link(page.json_href)}</p>\n"
         '<input id="filter" type="search" placeholder="Filter outputs by name or value…"'
         ' aria-label="Filter outputs by name or value">\n'
     )
@@ -458,6 +502,7 @@ def render_landing(
     generated_at: str,
     source_url: str = "",
     footer: bool = True,
+    provenance: Provenance | None = None,
 ) -> str:
     """Render the landing page linking to per-workspace pages.
 
@@ -480,7 +525,7 @@ def render_landing(
     header = (
         f"<h1>{_esc(title)}</h1>\n"
         f"<p>{_plural(len(workspaces), 'workspace')} · generated {_esc(generated_at)}"
-        f"{_source_link(source_url)}</p>\n"
+        f"{_provenance_html(provenance)}{_source_link(source_url)}</p>\n"
     )
     return _document(title, header, "".join(sections) + "\n", script=_LANDING_JS, footer=footer)
 
@@ -552,6 +597,7 @@ def _run_single(args: argparse.Namespace) -> int:
         source_url=args.source_url,
         footer=not args.no_footer,
         json_href="" if args.no_outputs_json else "outputs.json",
+        provenance=provenance_from_env(),
     )
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -580,6 +626,7 @@ def _run_workspaces(args: argparse.Namespace) -> int:
     now = _now()
     generated_at = now.strftime("%Y-%m-%d %H:%M UTC")
     generated_iso = now.isoformat()
+    provenance = provenance_from_env()
     workspaces: list[tuple[str, str, list[Output]]] = []
     seen_slugs: dict[str, str] = {}
     try:
@@ -612,6 +659,7 @@ def _run_workspaces(args: argparse.Namespace) -> int:
             source_url=args.source_url,
             footer=not args.no_footer,
             json_href="" if args.no_outputs_json else "outputs.json",
+            provenance=provenance,
         )
         ws_dir = out_dir / slug
         ws_dir.mkdir(parents=True, exist_ok=True)
@@ -646,6 +694,7 @@ def _run_workspaces(args: argparse.Namespace) -> int:
         generated_at,
         source_url=args.source_url,
         footer=not args.no_footer,
+        provenance=provenance,
     )
     (out_dir / "index.html").write_text(landing, encoding="utf-8")
     manifest = {
