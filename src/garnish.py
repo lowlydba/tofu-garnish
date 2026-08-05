@@ -498,30 +498,32 @@ document.querySelectorAll('time[datetime]').forEach(function (t) {
 
 def render_landing(
     title: str,
-    workspaces: list[tuple[str, str, int, str, str, str]],
+    workspaces: list[tuple[str, str, int, str, str]],
     generated_at: str,
     source_url: str = "",
     footer: bool = True,
     provenance: Provenance | None = None,
+    json_links: bool = False,
 ) -> str:
     """Render the landing page linking to per-workspace pages.
 
     ``workspaces`` is a list of ``(name, slug, output_count, updated,
-    updated_at, json_href)`` tuples; ``updated`` is the display string,
-    ``updated_at`` the ISO timestamp the client rewrites into a relative age,
-    and ``json_href`` the workspace's outputs.json (empty when absent).
+    updated_at)`` tuples; ``updated`` is the display string and ``updated_at``
+    the ISO timestamp the client rewrites into a relative age. With
+    ``json_links``, each card links its workspace's ``outputs.json``.
     """
     sections = []
-    for name, slug, count, updated, updated_at, json_href in workspaces:
+    for name, slug, count, updated, updated_at in workspaces:
         stamp = ""
         if updated and updated_at:
             stamp = f' · updated <time datetime="{_esc(updated_at)}">{_esc(updated)}</time>'
         elif updated:
             stamp = f" · updated {_esc(updated)}"
+        json_link = _json_link(f"{slug}/outputs.json") if json_links else ""
         sections.append(
             f'<section class="output ws" data-search="{_esc(name.lower())}">'
             f'<h2><a href="{_esc(slug)}/">{_esc(name)}</a></h2>'
-            f"<p>{_plural(count, 'output')}{stamp}{_json_link(json_href)}</p></section>"
+            f"<p>{_plural(count, 'output')}{stamp}{json_link}</p></section>"
         )
     header = (
         f"<h1>{_esc(title)}</h1>\n"
@@ -672,7 +674,6 @@ def _run_workspaces(args: argparse.Namespace) -> int:
             "outputs": len(outputs),
             "updated": generated_at,
             "updated_at": generated_iso,
-            "json": not args.no_outputs_json,
         }
         print(f"garnish: wrote {ws_dir / 'index.html'} ({len(outputs)} outputs)")
 
@@ -690,9 +691,6 @@ def _run_workspaces(args: argparse.Namespace) -> int:
                 int(entry.get("outputs", 0)),
                 str(entry.get("updated", "")),
                 str(entry.get("updated_at", "")),
-                # Merged entries from runs predating outputs.json lack the
-                # flag; omit the link rather than point at a missing file.
-                f"{slug}/outputs.json" if entry.get("json") else "",
             )
             for slug, entry in entries
         ],
@@ -700,6 +698,7 @@ def _run_workspaces(args: argparse.Namespace) -> int:
         source_url=args.source_url,
         footer=not args.no_footer,
         provenance=provenance,
+        json_links=not args.no_outputs_json,
     )
     (out_dir / "index.html").write_text(landing, encoding="utf-8")
     manifest = {
