@@ -194,6 +194,21 @@ automatically:
           outputs: ${{ toJson(steps.tf-outputs.outputs) }}
 ```
 
+### Consume outputs from scripts and other pipelines
+
+Every generated page has a machine-readable `outputs.json` next to it: a
+plain `{"name": value}` map with sensitive outputs omitted. That makes the
+Pages site a stable outputs endpoint, no repo clone or state access needed:
+
+```console
+$ curl -s https://org.github.io/infra/prod-eu/outputs.json | jq -r .vpc_id
+vpc-01463b6b84e1454ce
+```
+
+Single-workspace sites serve it at the site root (`/outputs.json`). The
+shape is documented in [Reference](#machine-readable-outputsjson). Don't
+want it? Set the `outputs-json` input to `"false"`.
+
 ### Generate the HTML without deploying
 
 Set `deploy: "false"` and do whatever you like with the site directory:
@@ -251,6 +266,7 @@ the demo workflow publishes them to this repo's Pages.
 | `title`        | no       | `Tofu Outputs`      | Title shown on the generated page(s).                                                                                                            |
 | `source-repo-url` | no    | current repository  | URL of the repo the outputs come from, rendered as a "source repository" link on each page. Set to `""` to omit the link.                        |
 | `footer`       | no       | `"true"`            | Render the "Served with 💚 by 🌿 tofu-garnish" footer (links to this repo) on generated pages. Set `"false"` to omit it.                          |
+| `outputs-json` | no       | `"true"`            | Write a machine-readable `outputs.json` next to each generated page (sensitive outputs omitted). Set `"false"` to publish HTML only.             |
 | `output-dir`   | no       | `tofu-garnish-site` | Where the site is written when `deploy` is `"false"`.                                                                                            |
 | `deploy`       | no       | `"true"`            | Commit the site to the Pages branch. Set `"false"` to only generate HTML.                                                                        |
 | `pages-branch` | no       | `gh-pages`          | Branch GitHub Pages serves from. Created automatically if missing.                                                                               |
@@ -286,12 +302,28 @@ gh-pages
 ├── .nojekyll
 ├── index.html        # landing page listing all workspaces
 ├── manifest.json     # machine-readable workspace index (used for merging)
-├── prod-us/index.html
-└── staging/index.html
+├── prod-us/
+│   ├── index.html
+│   └── outputs.json  # machine-readable outputs for this workspace
+└── staging/
+    ├── index.html
+    └── outputs.json
 ```
 
 Workspace names are slugged for directory safety (`Prod US` → `prod-us/`);
 two names that slug identically are rejected.
+
+### Machine-readable outputs.json
+
+Written next to every `index.html`, in single and workspaces mode (disable
+with the `outputs-json` input or `--no-outputs-json`). The shape is a
+contract:
+
+* A single JSON object mapping output name → value, exactly as parsed from
+  the input (nested values stay nested).
+* Sensitive outputs are omitted entirely, not masked; placeholder strings in
+  machine-readable output are an automation trap.
+* Pretty-printed, UTF-8, trailing newline.
 
 ### Workflow requirements (when deploying)
 
