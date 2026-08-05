@@ -313,7 +313,7 @@ gh-pages
 Workspace names are slugged for directory safety (`Prod US` → `prod-us/`);
 two names that slug identically are rejected.
 
-### <a name="machine-readable-outputsjson"></a>Machine-readable outputs.json
+### Machine-readable outputs.json
 
 Written next to every `index.html`, in single and workspaces mode (disable
 with the `outputs-json` input or `--no-outputs-json`). The shape is a
