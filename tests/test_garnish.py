@@ -310,7 +310,10 @@ class TestPageChrome:
 
     def test_landing_source_url_renders_link(self):
         html = render_landing(
-            "T", [("prod", "prod", 1, "now")], "now", source_url="https://github.com/octo/infra"
+            "T",
+            [("prod", "prod", 1, "now", "1970-01-01T00:00:00+00:00")],
+            "now",
+            source_url="https://github.com/octo/infra",
         )
         assert '<a class="src" href="https://github.com/octo/infra">source repository</a>' in html
 
@@ -324,8 +327,22 @@ class TestPageChrome:
         assert "<footer>" not in html
 
     def test_landing_footer_can_be_disabled(self):
-        html = render_landing("T", [("prod", "prod", 1, "now")], "now", footer=False)
+        html = render_landing("T", [("prod", "prod", 1, "now", "")], "now", footer=False)
         assert "<footer>" not in html
+
+    def test_landing_renders_time_element_and_age_script(self):
+        html = render_landing(
+            "T", [("prod", "prod", 1, "1970-01-01 00:00 UTC", "1970-01-01T00:00:00+00:00")], "now"
+        )
+        assert 'updated <time datetime="1970-01-01T00:00:00+00:00">1970-01-01 00:00 UTC</time>' in (
+            html
+        )
+        assert "time[datetime]" in html
+
+    def test_landing_without_iso_timestamp_renders_plain_text(self):
+        html = render_landing("T", [("prod", "prod", 1, "sometime", "")], "now")
+        assert "updated sometime" in html
+        assert "<time" not in html
 
     def test_data_search_includes_nested_keys_and_leaves(self):
         html = render('{"vpc": {"tags": {"Team": "Platform"}}, "subnets": [{"id": "s-1"}]}')
@@ -658,6 +675,14 @@ class TestMultiWorkspaceCli:
         assert manifest["workspaces"]["prod"]["name"] == "prod"
         assert manifest["workspaces"]["prod"]["outputs"] == 7
         assert manifest["workspaces"]["prod"]["updated"]
+        assert manifest["workspaces"]["prod"]["updated_at"]
+
+    def test_manifest_updated_at_is_iso_utc(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("SOURCE_DATE_EPOCH", "0")
+        rc, out = self._run(tmp_path, f"prod={FIXTURES / 'tofu_output_json.json'}")
+        assert rc == 0
+        manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+        assert manifest["workspaces"]["prod"]["updated_at"] == "1970-01-01T00:00:00+00:00"
 
     def test_landing_sorted_by_name(self, tmp_path):
         rc, out = self._run(
@@ -720,7 +745,64 @@ class TestMergeMode:
         out = tmp_path / "site"
         assert self._run(out, f"prod={FIXTURES / 'dflook_json_output_path.json'}") == 0
         landing = (out / "index.html").read_text(encoding="utf-8")
-        assert "updated 1970-01-01 00:00 UTC" in landing
+        assert 'updated <time datetime="1970-01-01T00:00:00+00:00">1970-01-01 00:00 UTC</time>' in (
+            landing
+        )
+
+    def test_merge_preserves_original_timestamps(self, tmp_path, monkeypatch):
+        out = tmp_path / "site"
+        monkeypatch.setenv("SOURCE_DATE_EPOCH", "0")
+        assert self._run(out, f"prod={FIXTURES / 'tofu_output_json.json'}") == 0
+        monkeypatch.setenv("SOURCE_DATE_EPOCH", str(30 * 86400))
+        assert self._run(out, f"staging={FIXTURES / 'dflook_json_output_path.json'}") == 0
+        manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+        assert manifest["workspaces"]["prod"]["updated_at"] == "1970-01-01T00:00:00+00:00"
+        assert manifest["workspaces"]["staging"]["updated_at"] == "1970-01-31T00:00:00+00:00"
+
+    def test_landing_sorted_by_recency(self, tmp_path, monkeypatch):
+        out = tmp_path / "site"
+        monkeypatch.setenv("SOURCE_DATE_EPOCH", str(30 * 86400))
+        assert self._run(out, f"prod={FIXTURES / 'tofu_output_json.json'}") == 0
+        monkeypatch.setenv("SOURCE_DATE_EPOCH", "0")
+        assert self._run(out, f"staging={FIXTURES / 'dflook_json_output_path.json'}") == 0
+        landing = (out / "index.html").read_text(encoding="utf-8")
+        assert landing.index(">prod</a>") < landing.index(">staging</a>")
+
+    def test_legacy_manifest_without_updated_at_still_sorts(self, tmp_path, monkeypatch):
+        out = tmp_path / "site"
+        out.mkdir()
+        (out / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "workspaces": {
+                        "legacy": {
+                            "name": "legacy",
+                            "outputs": 1,
+                            "updated": "2030-06-01 12:00 UTC",
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("SOURCE_DATE_EPOCH", "0")
+        assert self._run(out, f"prod={FIXTURES / 'tofu_output_json.json'}") == 0
+        manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+        assert manifest["workspaces"]["legacy"]["updated_at"] == "2030-06-01T12:00:00+00:00"
+        landing = (out / "index.html").read_text(encoding="utf-8")
+        assert landing.index(">legacy</a>") < landing.index(">prod</a>")
+
+    def test_legacy_manifest_with_unparseable_updated_sorts_last(self, tmp_path):
+        out = tmp_path / "site"
+        out.mkdir()
+        (out / "manifest.json").write_text(
+            json.dumps({"workspaces": {"old": {"name": "old", "outputs": 1, "updated": "x"}}}),
+            encoding="utf-8",
+        )
+        assert self._run(out, f"prod={FIXTURES / 'tofu_output_json.json'}") == 0
+        landing = (out / "index.html").read_text(encoding="utf-8")
+        assert landing.index(">prod</a>") < landing.index(">old</a>")
+        assert "updated x" in landing
 
     def test_merge_requires_workspace(self, capsys):
         assert main(["--merge"]) == 2
