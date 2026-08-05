@@ -50,6 +50,7 @@ class Page:
     back_href: str = ""
     source_url: str = ""
     footer: bool = True
+    json_href: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -140,6 +141,16 @@ def apply_descriptions(outputs: list[Output], descriptions: dict[str, str]) -> N
     """Attach descriptions to matching outputs in place."""
     for output in outputs:
         output.description = descriptions.get(output.name, "")
+
+
+def outputs_json(outputs: list[Output]) -> str:
+    """Machine-readable ``outputs.json``: a plain name -> value map.
+
+    Sensitive outputs are omitted entirely rather than masked; a placeholder
+    string in machine-readable output is an automation trap.
+    """
+    data = {o.name: o.value for o in outputs if not o.sensitive}
+    return json.dumps(data, indent=2) + "\n"
 
 
 # ---------------------------------------------------------------------------
@@ -345,6 +356,13 @@ def _source_link(source_url: str) -> str:
     return f' · <a class="src" href="{_esc(source_url)}">source repository</a>'
 
 
+def _json_link(json_href: str) -> str:
+    """Meta-line fragment linking to the machine-readable outputs.json."""
+    if not json_href:
+        return ""
+    return f' · <a class="src" href="{_esc(json_href)}">JSON</a>'
+
+
 def _document(title: str, header: str, main: str, script: str = "", footer: bool = True) -> str:
     """Wrap header/main content in the shared HTML shell."""
     script_tag = f"<script>\n{script}</script>\n" if script else ""
@@ -388,7 +406,7 @@ def render_page(page: Page) -> str:
     header = (
         f"{back}<h1>{_esc(page.title)}</h1>\n"
         f"<p>{_plural(len(page.outputs), 'output')} · generated {_esc(page.generated_at)}"
-        f"{_source_link(page.source_url)}</p>\n"
+        f"{_source_link(page.source_url)}{_json_link(page.json_href)}</p>\n"
         '<input id="filter" type="search" placeholder="Filter outputs by name or value…"'
         ' aria-label="Filter outputs by name or value">\n'
     )
@@ -532,11 +550,13 @@ def _run_single(args: argparse.Namespace) -> int:
         generated_at=_now_utc(),
         source_url=args.source_url,
         footer=not args.no_footer,
+        json_href="outputs.json",
     )
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "index.html"
     out_file.write_text(render_page(page), encoding="utf-8")
+    (out_dir / "outputs.json").write_text(outputs_json(outputs), encoding="utf-8")
     print(f"garnish: wrote {out_file} ({len(outputs)} outputs)")
     return 0
 
@@ -589,10 +609,12 @@ def _run_workspaces(args: argparse.Namespace) -> int:
             back_href="../",
             source_url=args.source_url,
             footer=not args.no_footer,
+            json_href="outputs.json",
         )
         ws_dir = out_dir / slug
         ws_dir.mkdir(parents=True, exist_ok=True)
         (ws_dir / "index.html").write_text(render_page(page), encoding="utf-8")
+        (ws_dir / "outputs.json").write_text(outputs_json(outputs), encoding="utf-8")
         merged[slug] = {
             "name": name,
             "outputs": len(outputs),

@@ -807,3 +807,69 @@ class TestMergeMode:
     def test_merge_requires_workspace(self, capsys):
         assert main(["--merge"]) == 2
         assert "requires at least one --workspace" in capsys.readouterr().err
+
+
+class TestOutputsJson:
+    def test_single_mode_writes_plain_map(self, tmp_path):
+        out = tmp_path / "site"
+        assert (
+            main(["--input", str(FIXTURES / "tofu_output_json.json"), "--output-dir", str(out)])
+            == 0
+        )
+        data = json.loads((out / "outputs.json").read_text(encoding="utf-8"))
+        assert data["cluster_endpoint"] == "https://k8s.example.com:6443"
+        assert data["instance_count"] == 3
+        assert data["vpc"]["id"] == "vpc-01463b6b84e1454ce"
+
+    def test_sensitive_outputs_omitted(self, tmp_path):
+        out = tmp_path / "site"
+        main(["--input", str(FIXTURES / "tofu_output_json.json"), "--output-dir", str(out)])
+        raw = (out / "outputs.json").read_text(encoding="utf-8")
+        assert "database_password" not in raw
+        assert "s3cr3t-hunter2" not in raw
+        assert MASK not in raw
+
+    def test_page_links_to_json(self, tmp_path):
+        out = tmp_path / "site"
+        main(["--input", str(FIXTURES / "tofu_output_json.json"), "--output-dir", str(out)])
+        html = (out / "index.html").read_text(encoding="utf-8")
+        assert '<a class="src" href="outputs.json">JSON</a>' in html
+
+    def test_workspaces_mode_writes_per_workspace_json(self, tmp_path):
+        out = tmp_path / "site"
+        rc = main(
+            [
+                "--workspace",
+                f"prod={FIXTURES / 'tofu_output_json.json'}",
+                "--workspace",
+                f"staging={FIXTURES / 'dflook_json_output_path.json'}",
+                "--output-dir",
+                str(out),
+            ]
+        )
+        assert rc == 0
+        prod = json.loads((out / "prod" / "outputs.json").read_text(encoding="utf-8"))
+        staging = json.loads((out / "staging" / "outputs.json").read_text(encoding="utf-8"))
+        assert "cluster_endpoint" in prod
+        assert "database_password" not in prod
+        assert staging
+        page = (out / "prod" / "index.html").read_text(encoding="utf-8")
+        assert '<a class="src" href="outputs.json">JSON</a>' in page
+
+    def test_landing_page_has_no_json_link(self, tmp_path):
+        out = tmp_path / "site"
+        main(
+            [
+                "--workspace",
+                f"prod={FIXTURES / 'tofu_output_json.json'}",
+                "--output-dir",
+                str(out),
+            ]
+        )
+        landing = (out / "index.html").read_text(encoding="utf-8")
+        assert 'href="outputs.json"' not in landing
+
+    def test_trailing_newline(self, tmp_path):
+        out = tmp_path / "site"
+        main(["--input", str(FIXTURES / "tofu_output_json.json"), "--output-dir", str(out)])
+        assert (out / "outputs.json").read_text(encoding="utf-8").endswith("}\n")

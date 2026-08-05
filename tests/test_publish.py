@@ -246,7 +246,13 @@ class TestPublish:
         api = FakeApi(tip=None)
         assert run_publish(api=api, sleep=lambda _: None) == 0
         paths = sorted(entry["path"] for entry in api.last_tree["tree"])
-        assert paths == [".nojekyll", "index.html", "manifest.json", "prod/index.html"]
+        assert paths == [
+            ".nojekyll",
+            "index.html",
+            "manifest.json",
+            "prod/index.html",
+            "prod/outputs.json",
+        ]
 
     def test_discrete_update_merges_remote_manifest(self, env, monkeypatch):
         monkeypatch.setenv(
