@@ -154,6 +154,25 @@ class TestGenerateSite:
         assert not (site / "outputs.json").exists()
         assert 'href="outputs.json"' not in (site / "index.html").read_text(encoding="utf-8")
 
+    def test_actions_env_renders_provenance(self, env, monkeypatch, tmp_path):
+        monkeypatch.setenv("GARNISH_OUTPUTS", '{"host": "example.com"}')
+        monkeypatch.setenv("GITHUB_SHA", "abcdef1234567890")
+        monkeypatch.setenv("GITHUB_SERVER_URL", "https://github.com")
+        monkeypatch.setenv("GITHUB_RUN_ID", "42")
+        site = tmp_path / "site"
+        generate_site(str(site))
+        html = (site / "index.html").read_text(encoding="utf-8")
+        assert 'href="https://github.com/octo/infra/commit/abcdef1234567890">abcdef1</a>' in html
+        assert 'href="https://github.com/octo/infra/actions/runs/42">workflow run</a>' in html
+
+    def test_no_actions_env_omits_provenance(self, env, monkeypatch, tmp_path):
+        monkeypatch.setenv("GARNISH_OUTPUTS", '{"host": "example.com"}')
+        site = tmp_path / "site"
+        generate_site(str(site))
+        html = (site / "index.html").read_text(encoding="utf-8")
+        assert "workflow run" not in html
+        assert "commit " not in html
+
     def test_workspaces_mode_ignores_blank_lines(self, env, monkeypatch, tmp_path):
         monkeypatch.setenv(
             "GARNISH_WORKSPACES",

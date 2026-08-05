@@ -20,7 +20,9 @@ Driven entirely by environment variables (set by action.yml):
 * ``PAGES_BRANCH`` -- branch to publish to (created if missing).
 * ``GARNISH_TOKEN`` -- token with contents write access.
 * ``GITHUB_REPOSITORY`` / ``GITHUB_API_URL`` / ``GITHUB_OUTPUT`` -- standard
-  Actions environment.
+  Actions environment. ``GITHUB_SHA`` / ``GITHUB_RUN_ID`` /
+  ``GITHUB_SERVER_URL`` additionally feed the provenance links garnish
+  renders in each page's meta line.
 """
 
 from __future__ import annotations
