@@ -6,12 +6,14 @@
     "prod": {
       "name": "prod",
       "outputs": 7,
-      "updated": "2026-07-16 17:49 UTC"
+      "updated": "2026-08-05 17:07 UTC",
+      "updated_at": "2026-08-05T17:07:53.621214+00:00"
     },
     "staging": {
       "name": "staging",
       "outputs": 3,
-      "updated": "2026-07-16 17:49 UTC"
+      "updated": "2026-08-05 17:07 UTC",
+      "updated_at": "2026-08-05T17:07:53.621214+00:00"
     }
   }
 }
