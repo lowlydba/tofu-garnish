@@ -98,7 +98,9 @@ That's it. Every push regenerates and republishes the page.
 ### Publish multiple workspaces, accounts, or tenants
 
 Use the `workspaces` input, one `name=path` pair per line. Each workspace
-gets its own page under `/<name>/`, plus a landing page linking them all:
+gets its own page under `/<name>/`, plus a landing page linking them all.
+The landing page lists workspaces most recently updated first, each with a
+relative age ("updated 3 days ago"):
 
 ```yaml
       - uses: lowlydba/tofu-garnish@v1

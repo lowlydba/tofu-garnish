@@ -416,31 +416,54 @@ def parse_workspace_spec(spec: str) -> tuple[str, str]:
     return name, path
 
 
+_LANDING_JS = """\
+document.querySelectorAll('time[datetime]').forEach(function (t) {
+  var s = (Date.now() - Date.parse(t.getAttribute('datetime'))) / 1000;
+  if (isNaN(s) || s < 0) { return; }
+  var units = [[86400, 'day'], [3600, 'hour'], [60, 'minute']];
+  for (var i = 0; i < units.length; i++) {
+    var n = Math.floor(s / units[i][0]);
+    if (n >= 1) {
+      t.textContent = n + ' ' + units[i][1] + (n === 1 ? '' : 's') + ' ago';
+      return;
+    }
+  }
+  t.textContent = 'just now';
+});
+"""
+
+
 def render_landing(
     title: str,
-    workspaces: list[tuple[str, str, int, str]],
+    workspaces: list[tuple[str, str, int, str, str]],
     generated_at: str,
     source_url: str = "",
     footer: bool = True,
 ) -> str:
     """Render the landing page linking to per-workspace pages.
 
-    ``workspaces`` is a list of ``(name, slug, output_count, updated)`` tuples.
+    ``workspaces`` is a list of ``(name, slug, output_count, updated,
+    updated_at)`` tuples; ``updated`` is the display string and ``updated_at``
+    the ISO timestamp the client rewrites into a relative age.
     """
     sections = []
-    for name, slug, count, updated in workspaces:
-        meta = _plural(count, "output") + (f" · updated {_esc(updated)}" if updated else "")
+    for name, slug, count, updated, updated_at in workspaces:
+        stamp = ""
+        if updated and updated_at:
+            stamp = f' · updated <time datetime="{_esc(updated_at)}">{_esc(updated)}</time>'
+        elif updated:
+            stamp = f" · updated {_esc(updated)}"
         sections.append(
             f'<section class="output ws" data-search="{_esc(name.lower())}">'
             f'<h2><a href="{_esc(slug)}/">{_esc(name)}</a></h2>'
-            f"<p>{meta}</p></section>"
+            f"<p>{_plural(count, 'output')}{stamp}</p></section>"
         )
     header = (
         f"<h1>{_esc(title)}</h1>\n"
         f"<p>{_plural(len(workspaces), 'workspace')} · generated {_esc(generated_at)}"
         f"{_source_link(source_url)}</p>\n"
     )
-    return _document(title, header, "".join(sections) + "\n", footer=footer)
+    return _document(title, header, "".join(sections) + "\n", script=_LANDING_JS, footer=footer)
 
 
 # ---------------------------------------------------------------------------
@@ -448,14 +471,32 @@ def render_landing(
 # ---------------------------------------------------------------------------
 
 
-def _now_utc() -> str:
+def _now() -> datetime:
     """Current UTC time, honoring SOURCE_DATE_EPOCH for reproducible builds."""
     epoch = os.environ.get("SOURCE_DATE_EPOCH")
     if epoch:
-        dt = datetime.fromtimestamp(int(epoch), tz=timezone.utc)
-    else:
-        dt = datetime.now(tz=timezone.utc)
-    return dt.strftime("%Y-%m-%d %H:%M UTC")
+        return datetime.fromtimestamp(int(epoch), tz=timezone.utc)
+    return datetime.now(tz=timezone.utc)
+
+
+def _now_utc() -> str:
+    return _now().strftime("%Y-%m-%d %H:%M UTC")
+
+
+def _parse_updated(entry: dict) -> str:
+    """ISO timestamp for a manifest workspace entry.
+
+    Manifests written before ``updated_at`` existed only carry the display
+    string; parse it so preserved workspaces still sort and age correctly.
+    """
+    updated_at = str(entry.get("updated_at", ""))
+    if updated_at:
+        return updated_at
+    try:
+        dt = datetime.strptime(str(entry.get("updated", "")), "%Y-%m-%d %H:%M UTC")
+    except ValueError:
+        return ""
+    return dt.replace(tzinfo=timezone.utc).isoformat()
 
 
 def _load_outputs_file(path_str: str) -> list[Output]:
@@ -514,7 +555,9 @@ def _read_manifest(out_dir: Path) -> dict:
 
 
 def _run_workspaces(args: argparse.Namespace) -> int:
-    generated_at = _now_utc()
+    now = _now()
+    generated_at = now.strftime("%Y-%m-%d %H:%M UTC")
+    generated_iso = now.isoformat()
     workspaces: list[tuple[str, str, list[Output]]] = []
     seen_slugs: dict[str, str] = {}
     try:
@@ -550,10 +593,19 @@ def _run_workspaces(args: argparse.Namespace) -> int:
         ws_dir = out_dir / slug
         ws_dir.mkdir(parents=True, exist_ok=True)
         (ws_dir / "index.html").write_text(render_page(page), encoding="utf-8")
-        merged[slug] = {"name": name, "outputs": len(outputs), "updated": generated_at}
+        merged[slug] = {
+            "name": name,
+            "outputs": len(outputs),
+            "updated": generated_at,
+            "updated_at": generated_iso,
+        }
         print(f"garnish: wrote {ws_dir / 'index.html'} ({len(outputs)} outputs)")
 
+    for entry in merged.values():
+        entry["updated_at"] = _parse_updated(entry)
+    # Recency first; stable sort keeps the name order for equal timestamps.
     entries = sorted(merged.items(), key=lambda kv: str(kv[1].get("name", kv[0])).lower())
+    entries.sort(key=lambda kv: str(kv[1].get("updated_at", "")), reverse=True)
     landing = render_landing(
         args.title,
         [
@@ -562,6 +614,7 @@ def _run_workspaces(args: argparse.Namespace) -> int:
                 slug,
                 int(entry.get("outputs", 0)),
                 str(entry.get("updated", "")),
+                str(entry.get("updated_at", "")),
             )
             for slug, entry in entries
         ],
