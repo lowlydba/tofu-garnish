@@ -313,7 +313,7 @@ class TestPageChrome:
     def test_landing_source_url_renders_link(self):
         html = render_landing(
             "T",
-            [("prod", "prod", 1, "now", "1970-01-01T00:00:00+00:00")],
+            [("prod", "prod", 1, "now", "1970-01-01T00:00:00+00:00", "")],
             "now",
             source_url="https://github.com/octo/infra",
         )
@@ -376,7 +376,7 @@ class TestPageChrome:
     def test_landing_provenance_renders_links(self):
         html = render_landing(
             "T",
-            [("prod", "prod", 1, "now", "2026-01-01T00:00:00+00:00")],
+            [("prod", "prod", 1, "now", "2026-01-01T00:00:00+00:00", "")],
             "now",
             provenance=Provenance(
                 commit_sha="abcdef1234567890",
@@ -397,12 +397,14 @@ class TestPageChrome:
         assert "<footer>" not in html
 
     def test_landing_footer_can_be_disabled(self):
-        html = render_landing("T", [("prod", "prod", 1, "now", "")], "now", footer=False)
+        html = render_landing("T", [("prod", "prod", 1, "now", "", "")], "now", footer=False)
         assert "<footer>" not in html
 
     def test_landing_renders_time_element_and_age_script(self):
         html = render_landing(
-            "T", [("prod", "prod", 1, "1970-01-01 00:00 UTC", "1970-01-01T00:00:00+00:00")], "now"
+            "T",
+            [("prod", "prod", 1, "1970-01-01 00:00 UTC", "1970-01-01T00:00:00+00:00", "")],
+            "now",
         )
         assert 'updated <time datetime="1970-01-01T00:00:00+00:00">1970-01-01 00:00 UTC</time>' in (
             html
@@ -410,9 +412,17 @@ class TestPageChrome:
         assert "time[datetime]" in html
 
     def test_landing_without_iso_timestamp_renders_plain_text(self):
-        html = render_landing("T", [("prod", "prod", 1, "sometime", "")], "now")
+        html = render_landing("T", [("prod", "prod", 1, "sometime", "", "")], "now")
         assert "updated sometime" in html
         assert "<time" not in html
+
+    def test_landing_workspace_json_link(self):
+        html = render_landing("T", [("prod", "prod", 1, "now", "", "prod/outputs.json")], "now")
+        assert '<a class="src" href="prod/outputs.json">JSON</a>' in html
+
+    def test_landing_workspace_without_json_omits_link(self):
+        html = render_landing("T", [("prod", "prod", 1, "now", "", "")], "now")
+        assert ">JSON</a>" not in html
 
     def test_data_search_includes_nested_keys_and_leaves(self):
         html = render('{"vpc": {"tags": {"Team": "Platform"}}, "subnets": [{"id": "s-1"}]}')
@@ -970,7 +980,7 @@ class TestOutputsJson:
         page = (out / "prod" / "index.html").read_text(encoding="utf-8")
         assert '<a class="src" href="outputs.json">JSON</a>' in page
 
-    def test_landing_page_has_no_json_link(self, tmp_path):
+    def test_landing_links_workspace_outputs_json(self, tmp_path):
         out = tmp_path / "site"
         main(
             [
@@ -981,7 +991,48 @@ class TestOutputsJson:
             ]
         )
         landing = (out / "index.html").read_text(encoding="utf-8")
-        assert 'href="outputs.json"' not in landing
+        assert '<a class="src" href="prod/outputs.json">JSON</a>' in landing
+
+    def test_no_outputs_json_flag_omits_landing_links(self, tmp_path):
+        out = tmp_path / "site"
+        main(
+            [
+                "--workspace",
+                f"prod={FIXTURES / 'tofu_output_json.json'}",
+                "--output-dir",
+                str(out),
+                "--no-outputs-json",
+            ]
+        )
+        landing = (out / "index.html").read_text(encoding="utf-8")
+        assert ">JSON</a>" not in landing
+
+    def test_merged_entry_without_json_flag_omits_link(self, tmp_path):
+        out = tmp_path / "site"
+        main(
+            [
+                "--workspace",
+                f"prod={FIXTURES / 'tofu_output_json.json'}",
+                "--output-dir",
+                str(out),
+            ]
+        )
+        # Simulate a manifest written before the json flag existed.
+        manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+        del manifest["workspaces"]["prod"]["json"]
+        (out / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        main(
+            [
+                "--workspace",
+                f"staging={FIXTURES / 'dflook_json_output_path.json'}",
+                "--output-dir",
+                str(out),
+                "--merge",
+            ]
+        )
+        landing = (out / "index.html").read_text(encoding="utf-8")
+        assert 'href="prod/outputs.json"' not in landing
+        assert '<a class="src" href="staging/outputs.json">JSON</a>' in landing
 
     def test_trailing_newline(self, tmp_path):
         out = tmp_path / "site"
