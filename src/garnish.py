@@ -550,13 +550,14 @@ def _run_single(args: argparse.Namespace) -> int:
         generated_at=_now_utc(),
         source_url=args.source_url,
         footer=not args.no_footer,
-        json_href="outputs.json",
+        json_href="" if args.no_outputs_json else "outputs.json",
     )
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "index.html"
     out_file.write_text(render_page(page), encoding="utf-8")
-    (out_dir / "outputs.json").write_text(outputs_json(outputs), encoding="utf-8")
+    if not args.no_outputs_json:
+        (out_dir / "outputs.json").write_text(outputs_json(outputs), encoding="utf-8")
     print(f"garnish: wrote {out_file} ({len(outputs)} outputs)")
     return 0
 
@@ -609,12 +610,13 @@ def _run_workspaces(args: argparse.Namespace) -> int:
             back_href="../",
             source_url=args.source_url,
             footer=not args.no_footer,
-            json_href="outputs.json",
+            json_href="" if args.no_outputs_json else "outputs.json",
         )
         ws_dir = out_dir / slug
         ws_dir.mkdir(parents=True, exist_ok=True)
         (ws_dir / "index.html").write_text(render_page(page), encoding="utf-8")
-        (ws_dir / "outputs.json").write_text(outputs_json(outputs), encoding="utf-8")
+        if not args.no_outputs_json:
+            (ws_dir / "outputs.json").write_text(outputs_json(outputs), encoding="utf-8")
         merged[slug] = {
             "name": name,
             "outputs": len(outputs),
@@ -719,6 +721,11 @@ def main(argv: list[str] | None = None) -> int:
         "--no-footer",
         action="store_true",
         help="Omit the tofu-garnish footer from generated pages.",
+    )
+    parser.add_argument(
+        "--no-outputs-json",
+        action="store_true",
+        help="Skip writing the machine-readable outputs.json next to each page.",
     )
     parser.add_argument("--version", action="version", version=__version__)
     args = parser.parse_args(argv)

@@ -83,6 +83,7 @@ def env(monkeypatch, tmp_path):
         "GARNISH_MODULE_DIR",
         "GARNISH_SOURCE_URL",
         "GARNISH_FOOTER",
+        "GARNISH_OUTPUTS_JSON",
     ):
         monkeypatch.delenv(var, raising=False)
     return out
@@ -138,6 +139,20 @@ class TestGenerateSite:
         site = tmp_path / "site"
         generate_site(str(site))
         assert "<footer>" not in (site / "index.html").read_text(encoding="utf-8")
+
+    def test_outputs_json_defaults_on(self, env, monkeypatch, tmp_path):
+        monkeypatch.setenv("GARNISH_OUTPUTS", '{"host": "example.com"}')
+        site = tmp_path / "site"
+        generate_site(str(site))
+        assert (site / "outputs.json").is_file()
+
+    def test_outputs_json_false_skips_file(self, env, monkeypatch, tmp_path):
+        monkeypatch.setenv("GARNISH_OUTPUTS", '{"host": "example.com"}')
+        monkeypatch.setenv("GARNISH_OUTPUTS_JSON", "false")
+        site = tmp_path / "site"
+        generate_site(str(site))
+        assert not (site / "outputs.json").exists()
+        assert 'href="outputs.json"' not in (site / "index.html").read_text(encoding="utf-8")
 
     def test_workspaces_mode_ignores_blank_lines(self, env, monkeypatch, tmp_path):
         monkeypatch.setenv(

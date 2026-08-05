@@ -873,3 +873,32 @@ class TestOutputsJson:
         out = tmp_path / "site"
         main(["--input", str(FIXTURES / "tofu_output_json.json"), "--output-dir", str(out)])
         assert (out / "outputs.json").read_text(encoding="utf-8").endswith("}\n")
+
+    def test_no_outputs_json_flag_skips_file_and_link(self, tmp_path):
+        out = tmp_path / "site"
+        rc = main(
+            [
+                "--input",
+                str(FIXTURES / "tofu_output_json.json"),
+                "--output-dir",
+                str(out),
+                "--no-outputs-json",
+            ]
+        )
+        assert rc == 0
+        assert not (out / "outputs.json").exists()
+        assert 'href="outputs.json"' not in (out / "index.html").read_text(encoding="utf-8")
+
+    def test_no_outputs_json_flag_in_workspaces_mode(self, tmp_path):
+        out = tmp_path / "site"
+        rc = main(
+            [
+                "--workspace",
+                f"prod={FIXTURES / 'tofu_output_json.json'}",
+                "--output-dir",
+                str(out),
+                "--no-outputs-json",
+            ]
+        )
+        assert rc == 0
+        assert not (out / "prod" / "outputs.json").exists()

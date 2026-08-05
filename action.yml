@@ -59,6 +59,12 @@ inputs:
       "false" to omit it.
     required: false
     default: "true"
+  outputs-json:
+    description: >-
+      Whether to write a machine-readable outputs.json next to each generated
+      page (sensitive outputs omitted). Set to "false" to publish HTML only.
+    required: false
+    default: "true"
   output-dir:
     description: >-
       Directory the generated site is written to. Only used when deploy is
@@ -104,6 +110,7 @@ runs:
         GARNISH_TITLE: ${{ inputs.title }}
         GARNISH_SOURCE_URL: ${{ inputs.source-repo-url }}
         GARNISH_FOOTER: ${{ inputs.footer }}
+        GARNISH_OUTPUTS_JSON: ${{ inputs.outputs-json }}
         GARNISH_OUTPUT_DIR: ${{ inputs.output-dir }}
         GARNISH_DEPLOY: ${{ inputs.deploy }}
         GARNISH_TOKEN: ${{ inputs.github-token }}
