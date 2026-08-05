@@ -360,6 +360,7 @@ def _document(title: str, header: str, main: str, script: str = "", footer: bool
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="tofu-garnish {__version__}">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>\U0001f33f</text></svg>">
 <title>{_esc(title)}</title>
 <style>
 {_CSS}</style>
