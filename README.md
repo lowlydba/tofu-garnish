@@ -64,6 +64,7 @@ Push to `main`, then set **Settings → Pages → Deploy from a branch →
 | Input          | Required | Default             | Description                                   |
 | -------------- | -------- | -------------------- | ---------------------------------------------- |
 | `outputs-file` | no*      | none                  | Path to a JSON outputs file.                   |
+| `outputs`      | no*      | none                  | Inline JSON string of outputs.                 |
 | `workspaces`   | no*      | none                  | Multiline `name=path` pairs for multi-workspace sites. |
 | `title`        | no       | `Tofu Outputs`        | Title shown on the generated page(s).          |
 | `deploy`       | no       | `"true"`              | Set `"false"` to only generate HTML.           |
