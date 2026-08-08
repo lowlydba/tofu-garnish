@@ -34,10 +34,11 @@ below is a quick scan; follow the link for the full page.
 Add a workflow step after you pull your outputs:
 
 ```yaml
-      - uses: lowlydba/tofu-garnish@v1
-        with:
-          outputs-file: ${{ steps.tf-outputs.outputs.json_output_path }}
-          title: My Stack Outputs
+steps:
+  - uses: lowlydba/tofu-garnish@v1
+    with:
+      outputs-file: ${{ steps.tf-outputs.outputs.json_output_path }}
+      title: My Stack Outputs
 ```
 
 Push to `main`, then set **Settings → Pages → Deploy from a branch →
