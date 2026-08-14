@@ -44,8 +44,11 @@ output "vpc_id" {
 
 ## Keep sibling objects shape-uniform
 
-A list of objects with identical keys becomes a columnar table, one row per
-item, one column per attribute. Mixed shapes fall back to a raw JSON blob:
+A list of dicts always becomes a columnar table: one row per item, one
+column per key seen across the whole list. Uniform shapes give a clean
+table; a list with inconsistent keys still renders as one, but with `—` in
+every cell where an item is missing that column, so keep the keys
+consistent:
 
 ```hcl
 output "subnets" {
