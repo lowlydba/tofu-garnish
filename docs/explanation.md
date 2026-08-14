@@ -1,4 +1,4 @@
-[← Back to README](../README.md) · [Tutorial](tutorial.md) · [How-to guides](how-to-guides.md) · [Reference](reference.md)
+[← Back to README](../README.md) · [Tutorial](tutorial.md) · [How-to guides](how-to-guides.md) · [Reference](reference.md) · [Writing outputs.tf](writing-outputs.md)
 
 # Explanation
 

@@ -59,6 +59,13 @@ Push to `main`, then set **Settings → Pages → Deploy from a branch →
 
 **[Full how-to guides →](docs/how-to-guides.md)**
 
+## Writing outputs
+
+`outputs.tf` has no concept of tofu-garnish's page layout, so naming,
+descriptions, and shape all affect how well it renders. See
+[Writing outputs.tf for a good garnish page](docs/writing-outputs.md) — link
+it from your repo's `AGENTS.md`/`CLAUDE.md` if an AI agent authors your Tofu.
+
 ## Reference
 
 | Input          | Required | Default             | Description                                   |
