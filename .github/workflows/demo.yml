@@ -1,3 +1,5 @@
+# This workflow is managed by gh actions-lock.
+
 name: Demo
 
 # Applies the example OpenTofu configs and publishes their real outputs to
@@ -25,12 +27,12 @@ jobs:
       contents: write # push the generated site to the gh-pages branch
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up OpenTofu
-        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        uses: opentofu/setup-opentofu@v2.0.2
         with:
           tofu_wrapper: false
 
@@ -45,7 +47,7 @@ jobs:
 
       - name: Garnish outputs
         id: garnish
-        uses: ./
+        uses: $/
         with:
           workspaces: |
             prod=demo-outputs.json

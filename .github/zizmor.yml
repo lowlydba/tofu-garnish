@@ -1,0 +1,10 @@
+# Workflow `uses:` references are pinned by tag (e.g. `@v7.0.1`) rather than
+# by SHA, but every one of them is recorded and integrity-checked against a
+# resolved commit in .github/workflows/actions.lock, generated and verified
+# with `gh actions-lock`. That gives us the same guarantee as SHA-pinning, so
+# unpinned-uses only needs to require a ref (not a hash) for this repo.
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        "*": ref-pin
