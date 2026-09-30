@@ -22,6 +22,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 __version__ = "1.0.0"
 
@@ -61,6 +62,7 @@ class Page:
     footer: bool = True
     json_href: str = ""
     provenance: Provenance | None = None
+    share_url: str = ""
 
 
 def provenance_from_env() -> Provenance | None:
@@ -296,7 +298,14 @@ def _search_terms(value: object):
         yield _raw_text(value)
 
 
-def _render_output(output: Output) -> str:
+def _link_button(url: str, label: str = "link") -> str:
+    return (
+        '<button class="copy" type="button" title="Copy shareable link" '
+        f'data-raw="{_esc(url)}">{label}</button>'
+    )
+
+
+def _render_output(output: Output, share_url: str = "") -> str:
     if output.sensitive:
         body = f'<span class="sensitive">{MASK} <em>(sensitive)</em></span>'
         search = output.name.lower()
@@ -313,10 +322,11 @@ def _render_output(output: Output) -> str:
     if output.description:
         search = f"{search} {output.description.lower()}"
     desc = f'<p class="desc">{_esc(output.description)}</p>' if output.description else ""
+    share = _link_button(f"{share_url}#{quote(output.name)}") if share_url else ""
     return (
         f'<section class="output" id="{_esc(output.name)}" '
         f'data-name="{_esc(output.name.lower())}" data-search="{_esc(search)}">'
-        f'<h2><a href="#{_esc(output.name)}">{_esc(output.name)}</a></h2>'
+        f'<h2><a href="#{_esc(output.name)}">{_esc(output.name)}</a>{share}</h2>'
         f"{desc}{body}</section>"
     )
 
@@ -333,6 +343,7 @@ section.output { border: 1px solid var(--border); border-radius: 6px; padding: 0
 section.output h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
 section.output h2 a { color: var(--accent); text-decoration: none; }
 section.output h2 a:hover { text-decoration: underline; }
+section.output h2 button.copy { margin-left: 0.5rem; vertical-align: middle; }
 .desc { color: var(--muted); font-size: 0.9rem; margin: -0.35rem 0 0.5rem; }
 table { border-collapse: collapse; width: 100%; margin: 0.25rem 0; }
 th, td { border: 1px solid var(--border); padding: 0.3rem 0.6rem; text-align: left; vertical-align: top; font-size: 0.9rem; }
@@ -365,11 +376,15 @@ document.getElementById('filter').addEventListener('input', function () {
   });
   document.getElementById('no-match').style.display = any ? 'none' : 'block';
 });
+"""
+
+_COPY_JS = """\
 document.addEventListener('click', function (e) {
   if (!e.target.matches('button.copy')) { return; }
+  var label = e.target.textContent;
   navigator.clipboard.writeText(e.target.dataset.raw).then(function () {
     e.target.textContent = 'copied!';
-    setTimeout(function () { e.target.textContent = 'copy'; }, 1200);
+    setTimeout(function () { e.target.textContent = label; }, 1200);
   });
 });
 """
@@ -391,6 +406,13 @@ def _json_link(json_href: str) -> str:
     if not json_href:
         return ""
     return f' · <a class="src" href="{_esc(json_href)}">JSON</a>'
+
+
+def _share_fragment(share_url: str) -> str:
+    """Meta-line fragment with a button copying the page's shareable URL."""
+    if not share_url:
+        return ""
+    return f" · {_link_button(share_url, 'copy link')}"
 
 
 def _provenance_html(provenance: Provenance | None) -> str:
@@ -439,7 +461,7 @@ def _document(title: str, header: str, main: str, script: str = "", footer: bool
 def render_page(page: Page) -> str:
     """Render the full, self-contained HTML document."""
     if page.outputs:
-        sections = "".join(_render_output(o) for o in page.outputs)
+        sections = "".join(_render_output(o, page.share_url) for o in page.outputs)
     else:
         sections = '<p class="empty">No outputs found.</p>'
     back = (
@@ -451,12 +473,12 @@ def render_page(page: Page) -> str:
         f"{back}<h1>{_esc(page.title)}</h1>\n"
         f"<p>{_plural(len(page.outputs), 'output')} · generated {_esc(page.generated_at)}"
         f"{_provenance_html(page.provenance)}{_source_link(page.source_url)}"
-        f"{_json_link(page.json_href)}</p>\n"
+        f"{_json_link(page.json_href)}{_share_fragment(page.share_url)}</p>\n"
         '<input id="filter" type="search" placeholder="Filter outputs by name or value…"'
         ' aria-label="Filter outputs by name or value">\n'
     )
     main = f'{sections}\n<p id="no-match" class="no-match">No outputs match the filter.</p>\n'
-    return _document(page.title, header, main, script=_JS, footer=page.footer)
+    return _document(page.title, header, main, script=_JS + _COPY_JS, footer=page.footer)
 
 
 # ---------------------------------------------------------------------------
@@ -504,6 +526,7 @@ def render_landing(
     footer: bool = True,
     provenance: Provenance | None = None,
     json_links: bool = False,
+    share_url: str = "",
 ) -> str:
     """Render the landing page linking to per-workspace pages.
 
@@ -528,9 +551,11 @@ def render_landing(
     header = (
         f"<h1>{_esc(title)}</h1>\n"
         f"<p>{_plural(len(workspaces), 'workspace')} · generated {_esc(generated_at)}"
-        f"{_provenance_html(provenance)}{_source_link(source_url)}</p>\n"
+        f"{_provenance_html(provenance)}{_source_link(source_url)}{_share_fragment(share_url)}</p>\n"
     )
-    return _document(title, header, "".join(sections) + "\n", script=_LANDING_JS, footer=footer)
+    return _document(
+        title, header, "".join(sections) + "\n", script=_LANDING_JS + _COPY_JS, footer=footer
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -582,6 +607,12 @@ def _load_descriptions(path_str: str) -> dict[str, str]:
     return parse_descriptions(path.read_text(encoding="utf-8"))
 
 
+def _share_base(url: str) -> str:
+    """Normalize the public site URL to end in exactly one slash, or ''."""
+    url = url.strip().rstrip("/")
+    return f"{url}/" if url else ""
+
+
 def _run_single(args: argparse.Namespace) -> int:
     try:
         if args.input == "-":
@@ -601,6 +632,7 @@ def _run_single(args: argparse.Namespace) -> int:
         footer=not args.no_footer,
         json_href="" if args.no_outputs_json else "outputs.json",
         provenance=provenance_from_env(),
+        share_url=_share_base(args.site_url),
     )
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -630,6 +662,7 @@ def _run_workspaces(args: argparse.Namespace) -> int:
     generated_at = now.strftime("%Y-%m-%d %H:%M UTC")
     generated_iso = now.isoformat()
     provenance = provenance_from_env()
+    share_base = _share_base(args.site_url)
     workspaces: list[tuple[str, str, list[Output]]] = []
     seen_slugs: dict[str, str] = {}
     try:
@@ -663,6 +696,7 @@ def _run_workspaces(args: argparse.Namespace) -> int:
             footer=not args.no_footer,
             json_href="" if args.no_outputs_json else "outputs.json",
             provenance=provenance,
+            share_url=f"{share_base}{slug}/" if share_base else "",
         )
         ws_dir = out_dir / slug
         ws_dir.mkdir(parents=True, exist_ok=True)
@@ -699,6 +733,7 @@ def _run_workspaces(args: argparse.Namespace) -> int:
         footer=not args.no_footer,
         provenance=provenance,
         json_links=not args.no_outputs_json,
+        share_url=share_base,
     )
     (out_dir / "index.html").write_text(landing, encoding="utf-8")
     manifest = {
@@ -769,6 +804,17 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "URL of the repository the outputs come from. When set, a "
             "'source repository' link is rendered on every page."
+        ),
+    )
+    parser.add_argument(
+        "--site-url",
+        default="",
+        metavar="URL",
+        help=(
+            "Public base URL the site is reachable at (e.g. a custom domain "
+            "such as https://labs.example.org/my-repo). When set, pages get "
+            "'copy link' buttons that copy URLs under it instead of the "
+            "address in the browser bar."
         ),
     )
     parser.add_argument(

@@ -12,6 +12,7 @@
 | `module-dir`   | no       | none                | **OpenTofu ≥ 1.10 only.** Root module directory; descriptions are extracted with `tofu show -json -module` and rendered on the page.             |
 | `title`        | no       | `Tofu Outputs`      | Title shown on the generated page(s).                                                                                                            |
 | `source-repo-url` | no    | current repository  | URL of the repo the outputs come from, rendered as a "source repository" link on each page. Set to `""` to omit the link.                        |
+| `site-url`    | no       | none                | Public base URL when the site is served from a vanity domain (e.g. `https://labs.example.org/my-repo`). Adds "copy link" buttons that copy URLs under it instead of the browser's address. |
 | `footer`       | no       | `"true"`            | Render the "Served with 💚 by 🌿 tofu-garnish" footer (links to this repo) on generated pages. Set `"false"` to omit it.                          |
 | `outputs-json` | no       | `"true"`            | Write a machine-readable `outputs.json` next to each generated page (sensitive outputs omitted). Set `"false"` to publish HTML only.             |
 | `output-dir`   | no       | `tofu-garnish-site` | Where the site is written when `deploy` is `"false"`.                                                                                            |

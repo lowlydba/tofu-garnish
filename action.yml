@@ -52,6 +52,15 @@ inputs:
       generated page. Set to "" to omit the link.
     required: false
     default: ${{ github.server_url }}/${{ github.repository }}
+  site-url:
+    description: >-
+      Public base URL of the site when it is served from a custom or vanity
+      domain (e.g. https://labs.example.org/my-repo), which GitHub Pages
+      redirects to its generated address. When set, pages render "copy link"
+      buttons that copy URLs under this base instead of the browser's
+      address. Omit to render no link buttons.
+    required: false
+    default: ""
   footer:
     description: >-
       Whether to render the "Served with 💚 by 🌿 tofu-garnish" footer, which
@@ -109,6 +118,7 @@ runs:
         GARNISH_MODULE_DIR: ${{ inputs.module-dir }}
         GARNISH_TITLE: ${{ inputs.title }}
         GARNISH_SOURCE_URL: ${{ inputs.source-repo-url }}
+        GARNISH_SITE_URL: ${{ inputs.site-url }}
         GARNISH_FOOTER: ${{ inputs.footer }}
         GARNISH_OUTPUTS_JSON: ${{ inputs.outputs-json }}
         GARNISH_OUTPUT_DIR: ${{ inputs.output-dir }}

@@ -400,6 +400,63 @@ class TestPageChrome:
         html = render_landing("T", [("prod", "prod", 1, "now", "")], "now", footer=False)
         assert "<footer>" not in html
 
+    def test_no_share_buttons_by_default(self):
+        html = render('{"a": 1}')
+        assert "copy link" not in html
+        assert "Copy shareable link" not in html
+
+    def test_share_buttons_use_configured_url(self):
+        html = render_page(
+            Page(
+                title="T",
+                outputs=parse_outputs('{"my out": 1}'),
+                generated_at="now",
+                share_url="https://labs.example.org/repo/",
+            )
+        )
+        assert 'data-raw="https://labs.example.org/repo/">copy link</button>' in html
+        assert 'data-raw="https://labs.example.org/repo/#my%20out">link</button>' in html
+
+    def test_landing_share_button(self):
+        html = render_landing(
+            "T", [("prod", "prod", 1, "now", "")], "now", share_url="https://x.org/r/"
+        )
+        assert 'data-raw="https://x.org/r/">copy link</button>' in html
+        assert "button.copy" in html
+
+    def test_cli_site_url_workspaces(self, tmp_path):
+        out = tmp_path / "site"
+        rc = main(
+            [
+                "--workspace",
+                f"prod={FIXTURES / 'tofu_output_json.json'}",
+                "--site-url",
+                "https://x.org/r",
+                "--output-dir",
+                str(out),
+            ]
+        )
+        assert rc == 0
+        assert 'data-raw="https://x.org/r/">copy link' in (out / "index.html").read_text("utf-8")
+        assert 'data-raw="https://x.org/r/prod/">copy link' in (
+            out / "prod" / "index.html"
+        ).read_text("utf-8")
+
+    def test_cli_site_url_single(self, tmp_path):
+        out = tmp_path / "site"
+        rc = main(
+            [
+                "--input",
+                str(FIXTURES / "tofu_output_json.json"),
+                "--site-url",
+                "https://x.org/r/",
+                "--output-dir",
+                str(out),
+            ]
+        )
+        assert rc == 0
+        assert 'data-raw="https://x.org/r/">copy link' in (out / "index.html").read_text("utf-8")
+
     def test_landing_renders_time_element_and_age_script(self):
         html = render_landing(
             "T",
