@@ -400,6 +400,97 @@ class TestPageChrome:
         html = render_landing("T", [("prod", "prod", 1, "now", "")], "now", footer=False)
         assert "<footer>" not in html
 
+    def test_no_share_buttons_by_default(self):
+        html = render('{"a": 1}')
+        assert "copy link" not in html
+        assert "Copy shareable link" not in html
+
+    def test_share_buttons_use_configured_url(self):
+        html = render_page(
+            Page(
+                title="T",
+                outputs=parse_outputs('{"my out": 1}'),
+                generated_at="now",
+                share_url="https://labs.example.org/repo/",
+            )
+        )
+        assert (
+            'data-raw="https://labs.example.org/repo/" data-done="\u2713">\U0001f517</button>'
+            in html
+        )
+        assert (
+            'data-raw="https://labs.example.org/repo/#my%20out" data-done="\u2713">'
+            "\U0001f517</button>" in html
+        )
+
+    def test_json_link_is_relative_without_site_url(self):
+        html = render_page(
+            Page(title="T", outputs=[], generated_at="now", json_href="outputs.json")
+        )
+        assert 'href="outputs.json">JSON</a>' in html
+
+    def test_json_links_use_site_url_when_configured(self):
+        page = Page(
+            title="T",
+            outputs=[],
+            generated_at="now",
+            json_href="outputs.json",
+            share_url="https://x.org/r/prod/",
+        )
+        assert 'href="https://x.org/r/prod/outputs.json">JSON</a>' in render_page(page)
+        landing = render_landing(
+            "T",
+            [("prod", "prod", 1, "now", "")],
+            "now",
+            json_links=True,
+            share_url="https://x.org/r/",
+        )
+        assert 'href="https://x.org/r/prod/outputs.json">JSON</a>' in landing
+
+    def test_landing_share_button(self):
+        html = render_landing(
+            "T", [("prod", "prod", 1, "now", "")], "now", share_url="https://x.org/r/"
+        )
+        assert 'data-raw="https://x.org/r/" data-done="\u2713">\U0001f517</button>' in html
+        assert "button.copy" in html
+
+    def test_cli_site_url_workspaces(self, tmp_path):
+        out = tmp_path / "site"
+        rc = main(
+            [
+                "--workspace",
+                f"prod={FIXTURES / 'tofu_output_json.json'}",
+                "--site-url",
+                "https://x.org/r",
+                "--output-dir",
+                str(out),
+            ]
+        )
+        assert rc == 0
+        assert 'data-raw="https://x.org/r/" data-done="\u2713">\U0001f517' in (
+            out / "index.html"
+        ).read_text("utf-8")
+        assert 'data-raw="https://x.org/r/prod/" data-done="\u2713">\U0001f517' in (
+            out / "prod" / "index.html"
+        ).read_text("utf-8")
+
+    def test_cli_site_url_single(self, tmp_path):
+        out = tmp_path / "site"
+        rc = main(
+            [
+                "--input",
+                str(FIXTURES / "tofu_output_json.json"),
+                "--site-url",
+                "https://x.org/r/",
+                "--output-dir",
+                str(out),
+            ]
+        )
+        assert rc == 0
+        assert 'data-raw="https://x.org/r/" data-done="\u2713">\U0001f517' in (
+            out / "index.html"
+        ).read_text("utf-8")
+
     def test_landing_renders_time_element_and_age_script(self):
         html = render_landing(
             "T",
