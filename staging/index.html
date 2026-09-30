@@ -18,6 +18,9 @@ section.output { border: 1px solid var(--border); border-radius: 6px; padding: 0
 section.output h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
 section.output h2 a { color: var(--accent); text-decoration: none; }
 section.output h2 a:hover { text-decoration: underline; }
+button.anchor { padding: 0; border: 0; font-size: 0.8em; opacity: 0.35; }
+button.anchor:hover, button.anchor:focus-visible { opacity: 1; }
+section.output h2 button.anchor { margin-right: 0.4rem; }
 .desc { color: var(--muted); font-size: 0.9rem; margin: -0.35rem 0 0.5rem; }
 table { border-collapse: collapse; width: 100%; margin: 0.25rem 0; }
 th, td { border: 1px solid var(--border); padding: 0.3rem 0.6rem; text-align: left; vertical-align: top; font-size: 0.9rem; }
@@ -29,6 +32,7 @@ ul.seq li::marker { color: var(--muted); }
 .scalar { display: inline-flex; align-items: baseline; gap: 0.5rem; max-width: 100%; }
 button.copy { font-size: 0.7rem; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; padding: 0.1rem 0.4rem; }
 button.copy:hover { color: inherit; }
+button.copy svg { display: block; }
 .empty, .null { color: var(--muted); font-style: italic; }
 .sensitive { color: var(--muted); }
 footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
@@ -42,14 +46,14 @@ section.ws p { color: var(--muted); margin: 0; }
 <body>
 <header>
 <p class="back"><a href="../">← all workspaces</a></p><h1>tofu-garnish demo · staging</h1>
-<p>3 outputs · generated 2026-08-05 17:39 UTC · commit <a class="src" href="https://github.com/lowlydba/tofu-garnish/commit/ddd67082941cc1f046f02a2bd85075a400d1f0a2">ddd6708</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish/actions/runs/31031052823">workflow run</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a> · <a class="src" href="outputs.json">JSON</a></p>
+<p>3 outputs · generated 2026-09-30 17:14 UTC · commit <a class="src" href="https://github.com/lowlydba/tofu-garnish/commit/6ac8504910034f7f1d2e9cf07837c47dc07bbdff">6ac8504</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish/actions/runs/36749968503">workflow run</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a> · <a class="src" href="outputs.json">JSON</a></p>
 <input id="filter" type="search" placeholder="Filter outputs by name or value…" aria-label="Filter outputs by name or value">
 </header>
 <main>
-<section class="output" id="instance_count" data-name="instance_count" data-search="instance_count 1 number of app instances"><h2><a href="#instance_count">instance_count</a></h2><p class="desc">Number of app instances</p><span class="scalar"><code>1</code><button class="copy" type="button" title="Copy value" data-raw="1">copy</button></span></section><section class="output" id="service_hostname" data-name="service_hostname" data-search="service_hostname staging.example.com"><h2><a href="#service_hostname">service_hostname</a></h2><span class="scalar"><code>staging.example.com</code><button class="copy" type="button" title="Copy value" data-raw="staging.example.com">copy</button></span></section><section class="output" id="vpc" data-name="vpc" data-search="vpc cidr_block 10.1.0.0/16 id vpc-0staging1234567890 tags environment staging team platform vpc attributes"><h2><a href="#vpc">vpc</a></h2><p class="desc">VPC attributes</p><table class="kv"><tbody><tr><th scope="row">cidr_block</th><td><code>10.1.0.0/16</code></td><td class="act"><button class="copy" type="button" title="Copy value" data-raw="10.1.0.0/16">copy</button></td></tr><tr><th scope="row">id</th><td><code>vpc-0staging1234567890</code></td><td class="act"><button class="copy" type="button" title="Copy value" data-raw="vpc-0staging1234567890">copy</button></td></tr><tr><th scope="row">tags</th><td><table class="kv"><tbody><tr><th scope="row">Environment</th><td><code>staging</code></td></tr><tr><th scope="row">Team</th><td><code>platform</code></td></tr></tbody></table></td><td class="act"><button class="copy" type="button" title="Copy value" data-raw="{
+<section class="output" id="instance_count" data-name="instance_count" data-search="instance_count 1 number of app instances"><h2><a href="#instance_count">instance_count</a></h2><p class="desc">Number of app instances</p><span class="scalar"><code>1</code><button class="copy" type="button" title="Copy value" aria-label="Copy value" data-done="✓" data-raw="1"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg></button></span></section><section class="output" id="service_hostname" data-name="service_hostname" data-search="service_hostname staging.example.com"><h2><a href="#service_hostname">service_hostname</a></h2><span class="scalar"><code>staging.example.com</code><button class="copy" type="button" title="Copy value" aria-label="Copy value" data-done="✓" data-raw="staging.example.com"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg></button></span></section><section class="output" id="vpc" data-name="vpc" data-search="vpc cidr_block 10.1.0.0/16 id vpc-0staging1234567890 tags environment staging team platform vpc attributes"><h2><a href="#vpc">vpc</a></h2><p class="desc">VPC attributes</p><table class="kv"><tbody><tr><th scope="row">cidr_block</th><td><code>10.1.0.0/16</code></td><td class="act"><button class="copy" type="button" title="Copy value" aria-label="Copy value" data-done="✓" data-raw="10.1.0.0/16"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg></button></td></tr><tr><th scope="row">id</th><td><code>vpc-0staging1234567890</code></td><td class="act"><button class="copy" type="button" title="Copy value" aria-label="Copy value" data-done="✓" data-raw="vpc-0staging1234567890"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg></button></td></tr><tr><th scope="row">tags</th><td><table class="kv"><tbody><tr><th scope="row">Environment</th><td><code>staging</code></td></tr><tr><th scope="row">Team</th><td><code>platform</code></td></tr></tbody></table></td><td class="act"><button class="copy" type="button" title="Copy value" aria-label="Copy value" data-done="✓" data-raw="{
   &quot;Environment&quot;: &quot;staging&quot;,
   &quot;Team&quot;: &quot;platform&quot;
-}">copy</button></td></tr></tbody></table></section>
+}"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg></button></td></tr></tbody></table></section>
 <p id="no-match" class="no-match">No outputs match the filter.</p>
 </main>
 <footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
@@ -65,10 +69,12 @@ document.getElementById('filter').addEventListener('input', function () {
   document.getElementById('no-match').style.display = any ? 'none' : 'block';
 });
 document.addEventListener('click', function (e) {
-  if (!e.target.matches('button.copy')) { return; }
-  navigator.clipboard.writeText(e.target.dataset.raw).then(function () {
-    e.target.textContent = 'copied!';
-    setTimeout(function () { e.target.textContent = 'copy'; }, 1200);
+  var btn = e.target.closest('button.copy');
+  if (!btn) { return; }
+  var label = btn.innerHTML;
+  navigator.clipboard.writeText(btn.dataset.raw).then(function () {
+    btn.textContent = btn.dataset.done || 'copied!';
+    setTimeout(function () { btn.innerHTML = label; }, 1200);
   });
 });
 </script>

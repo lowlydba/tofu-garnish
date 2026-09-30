@@ -18,6 +18,9 @@ section.output { border: 1px solid var(--border); border-radius: 6px; padding: 0
 section.output h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
 section.output h2 a { color: var(--accent); text-decoration: none; }
 section.output h2 a:hover { text-decoration: underline; }
+button.anchor { padding: 0; border: 0; font-size: 0.8em; opacity: 0.35; }
+button.anchor:hover, button.anchor:focus-visible { opacity: 1; }
+section.output h2 button.anchor { margin-right: 0.4rem; }
 .desc { color: var(--muted); font-size: 0.9rem; margin: -0.35rem 0 0.5rem; }
 table { border-collapse: collapse; width: 100%; margin: 0.25rem 0; }
 th, td { border: 1px solid var(--border); padding: 0.3rem 0.6rem; text-align: left; vertical-align: top; font-size: 0.9rem; }
@@ -29,6 +32,7 @@ ul.seq li::marker { color: var(--muted); }
 .scalar { display: inline-flex; align-items: baseline; gap: 0.5rem; max-width: 100%; }
 button.copy { font-size: 0.7rem; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; padding: 0.1rem 0.4rem; }
 button.copy:hover { color: inherit; }
+button.copy svg { display: block; }
 .empty, .null { color: var(--muted); font-style: italic; }
 .sensitive { color: var(--muted); }
 footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
@@ -42,10 +46,10 @@ section.ws p { color: var(--muted); margin: 0; }
 <body>
 <header>
 <h1>tofu-garnish demo</h1>
-<p>2 workspaces · generated 2026-08-05 17:39 UTC · commit <a class="src" href="https://github.com/lowlydba/tofu-garnish/commit/ddd67082941cc1f046f02a2bd85075a400d1f0a2">ddd6708</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish/actions/runs/31031052823">workflow run</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a></p>
+<p>2 workspaces · generated 2026-09-30 17:14 UTC · commit <a class="src" href="https://github.com/lowlydba/tofu-garnish/commit/6ac8504910034f7f1d2e9cf07837c47dc07bbdff">6ac8504</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish/actions/runs/36749968503">workflow run</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a></p>
 </header>
 <main>
-<section class="output ws" data-search="prod"><h2><a href="prod/">prod</a></h2><p>7 outputs · updated <time datetime="2026-08-05T17:39:51.357222+00:00">2026-08-05 17:39 UTC</time> · <a class="src" href="prod/outputs.json">JSON</a></p></section><section class="output ws" data-search="staging"><h2><a href="staging/">staging</a></h2><p>3 outputs · updated <time datetime="2026-08-05T17:39:51.357222+00:00">2026-08-05 17:39 UTC</time> · <a class="src" href="staging/outputs.json">JSON</a></p></section>
+<section class="output ws" data-search="prod"><h2><a href="prod/">prod</a></h2><p>7 outputs · updated <time datetime="2026-09-30T17:14:34.187806+00:00">2026-09-30 17:14 UTC</time> · <a class="src" href="prod/outputs.json">JSON</a></p></section><section class="output ws" data-search="staging"><h2><a href="staging/">staging</a></h2><p>3 outputs · updated <time datetime="2026-09-30T17:14:34.187806+00:00">2026-09-30 17:14 UTC</time> · <a class="src" href="staging/outputs.json">JSON</a></p></section>
 </main>
 <footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
 <script>
@@ -61,6 +65,15 @@ document.querySelectorAll('time[datetime]').forEach(function (t) {
     }
   }
   t.textContent = 'just now';
+});
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('button.copy');
+  if (!btn) { return; }
+  var label = btn.innerHTML;
+  navigator.clipboard.writeText(btn.dataset.raw).then(function () {
+    btn.textContent = btn.dataset.done || 'copied!';
+    setTimeout(function () { btn.innerHTML = label; }, 1200);
+  });
 });
 </script>
 </body>
