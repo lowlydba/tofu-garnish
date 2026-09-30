@@ -20,7 +20,7 @@ import os
 import re
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote
 
@@ -29,6 +29,17 @@ __version__ = "1.0.0"
 REPO_URL = "https://github.com/lowlydba/tofu-garnish"
 
 MASK = "••••••••"
+LINK_ICON = "\U0001f517"
+CHECK_MARK = "\u2713"
+COPY_ICON = (
+    '<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true">'
+    '<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5'
+    "c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 "
+    '9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/>'
+    '<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 '
+    "14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25"
+    'h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>'
+)
 
 
 @dataclass
@@ -219,8 +230,8 @@ def _raw_text(value: object) -> str:
 
 def _copy_button(value: object) -> str:
     return (
-        '<button class="copy" type="button" title="Copy value" '
-        f'data-raw="{_esc(_raw_text(value))}">copy</button>'
+        '<button class="copy" type="button" title="Copy value" aria-label="Copy value" '
+        f'data-done="{CHECK_MARK}" data-raw="{_esc(_raw_text(value))}">{COPY_ICON}</button>'
     )
 
 
@@ -298,10 +309,11 @@ def _search_terms(value: object):
         yield _raw_text(value)
 
 
-def _link_button(url: str, label: str = "link") -> str:
+def _link_button(url: str, label: str, cls: str = "copy", done: str = "") -> str:
+    done_attr = f' data-done="{done}"' if done else ""
     return (
-        '<button class="copy" type="button" title="Copy shareable link" '
-        f'data-raw="{_esc(url)}">{label}</button>'
+        f'<button class="{cls}" type="button" title="Copy shareable link" '
+        f'aria-label="Copy shareable link" data-raw="{_esc(url)}"{done_attr}>{label}</button>'
     )
 
 
@@ -322,11 +334,15 @@ def _render_output(output: Output, share_url: str = "") -> str:
     if output.description:
         search = f"{search} {output.description.lower()}"
     desc = f'<p class="desc">{_esc(output.description)}</p>' if output.description else ""
-    share = _link_button(f"{share_url}#{quote(output.name)}") if share_url else ""
+    share = (
+        _link_button(f"{share_url}#{quote(output.name)}", LINK_ICON, "copy anchor", CHECK_MARK)
+        if share_url
+        else ""
+    )
     return (
         f'<section class="output" id="{_esc(output.name)}" '
         f'data-name="{_esc(output.name.lower())}" data-search="{_esc(search)}">'
-        f'<h2><a href="#{_esc(output.name)}">{_esc(output.name)}</a>{share}</h2>'
+        f'<h2>{share}<a href="#{_esc(output.name)}">{_esc(output.name)}</a></h2>'
         f"{desc}{body}</section>"
     )
 
@@ -343,7 +359,9 @@ section.output { border: 1px solid var(--border); border-radius: 6px; padding: 0
 section.output h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
 section.output h2 a { color: var(--accent); text-decoration: none; }
 section.output h2 a:hover { text-decoration: underline; }
-section.output h2 button.copy { margin-left: 0.5rem; vertical-align: middle; }
+button.anchor { padding: 0; border: 0; font-size: 0.8em; opacity: 0.35; }
+button.anchor:hover, button.anchor:focus-visible { opacity: 1; }
+section.output h2 button.anchor { margin-right: 0.4rem; }
 .desc { color: var(--muted); font-size: 0.9rem; margin: -0.35rem 0 0.5rem; }
 table { border-collapse: collapse; width: 100%; margin: 0.25rem 0; }
 th, td { border: 1px solid var(--border); padding: 0.3rem 0.6rem; text-align: left; vertical-align: top; font-size: 0.9rem; }
@@ -355,6 +373,7 @@ ul.seq li::marker { color: var(--muted); }
 .scalar { display: inline-flex; align-items: baseline; gap: 0.5rem; max-width: 100%; }
 button.copy { font-size: 0.7rem; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; padding: 0.1rem 0.4rem; }
 button.copy:hover { color: inherit; }
+button.copy svg { display: block; }
 .empty, .null { color: var(--muted); font-style: italic; }
 .sensitive { color: var(--muted); }
 footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
@@ -380,11 +399,12 @@ document.getElementById('filter').addEventListener('input', function () {
 
 _COPY_JS = """\
 document.addEventListener('click', function (e) {
-  if (!e.target.matches('button.copy')) { return; }
-  var label = e.target.textContent;
-  navigator.clipboard.writeText(e.target.dataset.raw).then(function () {
-    e.target.textContent = 'copied!';
-    setTimeout(function () { e.target.textContent = label; }, 1200);
+  var btn = e.target.closest('button.copy');
+  if (!btn) { return; }
+  var label = btn.innerHTML;
+  navigator.clipboard.writeText(btn.dataset.raw).then(function () {
+    btn.textContent = btn.dataset.done || 'copied!';
+    setTimeout(function () { btn.innerHTML = label; }, 1200);
   });
 });
 """
@@ -401,6 +421,11 @@ def _source_link(source_url: str) -> str:
     return f' · <a class="src" href="{_esc(source_url)}">source repository</a>'
 
 
+def _absolute(base: str, href: str) -> str:
+    """Resolve ``href`` against the public site URL when one is configured."""
+    return f"{base}{href}" if href else ""
+
+
 def _json_link(json_href: str) -> str:
     """Meta-line fragment linking to the machine-readable outputs.json."""
     if not json_href:
@@ -412,7 +437,7 @@ def _share_fragment(share_url: str) -> str:
     """Meta-line fragment with a button copying the page's shareable URL."""
     if not share_url:
         return ""
-    return f" · {_link_button(share_url, 'copy link')}"
+    return " · " + _link_button(share_url, LINK_ICON, "copy anchor", CHECK_MARK)
 
 
 def _provenance_html(provenance: Provenance | None) -> str:
@@ -473,7 +498,8 @@ def render_page(page: Page) -> str:
         f"{back}<h1>{_esc(page.title)}</h1>\n"
         f"<p>{_plural(len(page.outputs), 'output')} · generated {_esc(page.generated_at)}"
         f"{_provenance_html(page.provenance)}{_source_link(page.source_url)}"
-        f"{_json_link(page.json_href)}{_share_fragment(page.share_url)}</p>\n"
+        f"{_json_link(_absolute(page.share_url, page.json_href))}"
+        f"{_share_fragment(page.share_url)}</p>\n"
         '<input id="filter" type="search" placeholder="Filter outputs by name or value…"'
         ' aria-label="Filter outputs by name or value">\n'
     )
@@ -542,7 +568,7 @@ def render_landing(
             stamp = f' · updated <time datetime="{_esc(updated_at)}">{_esc(updated)}</time>'
         elif updated:
             stamp = f" · updated {_esc(updated)}"
-        json_link = _json_link(f"{slug}/outputs.json") if json_links else ""
+        json_link = _json_link(_absolute(share_url, f"{slug}/outputs.json")) if json_links else ""
         sections.append(
             f'<section class="output ws" data-search="{_esc(name.lower())}">'
             f'<h2><a href="{_esc(slug)}/">{_esc(name)}</a></h2>'
@@ -567,8 +593,8 @@ def _now() -> datetime:
     """Current UTC time, honoring SOURCE_DATE_EPOCH for reproducible builds."""
     epoch = os.environ.get("SOURCE_DATE_EPOCH")
     if epoch:
-        return datetime.fromtimestamp(int(epoch), tz=timezone.utc)
-    return datetime.now(tz=timezone.utc)
+        return datetime.fromtimestamp(int(epoch), tz=UTC)
+    return datetime.now(tz=UTC)
 
 
 def _now_utc() -> str:
@@ -588,7 +614,7 @@ def _parse_updated(entry: dict) -> str:
         dt = datetime.strptime(str(entry.get("updated", "")), "%Y-%m-%d %H:%M UTC")
     except ValueError:
         return ""
-    return dt.replace(tzinfo=timezone.utc).isoformat()
+    return dt.replace(tzinfo=UTC).isoformat()
 
 
 def _load_outputs_file(path_str: str) -> list[Output]:

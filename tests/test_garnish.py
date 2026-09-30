@@ -414,14 +414,44 @@ class TestPageChrome:
                 share_url="https://labs.example.org/repo/",
             )
         )
-        assert 'data-raw="https://labs.example.org/repo/">copy link</button>' in html
-        assert 'data-raw="https://labs.example.org/repo/#my%20out">link</button>' in html
+        assert (
+            'data-raw="https://labs.example.org/repo/" data-done="\u2713">\U0001f517</button>'
+            in html
+        )
+        assert (
+            'data-raw="https://labs.example.org/repo/#my%20out" data-done="\u2713">'
+            "\U0001f517</button>" in html
+        )
+
+    def test_json_link_is_relative_without_site_url(self):
+        html = render_page(
+            Page(title="T", outputs=[], generated_at="now", json_href="outputs.json")
+        )
+        assert 'href="outputs.json">JSON</a>' in html
+
+    def test_json_links_use_site_url_when_configured(self):
+        page = Page(
+            title="T",
+            outputs=[],
+            generated_at="now",
+            json_href="outputs.json",
+            share_url="https://x.org/r/prod/",
+        )
+        assert 'href="https://x.org/r/prod/outputs.json">JSON</a>' in render_page(page)
+        landing = render_landing(
+            "T",
+            [("prod", "prod", 1, "now", "")],
+            "now",
+            json_links=True,
+            share_url="https://x.org/r/",
+        )
+        assert 'href="https://x.org/r/prod/outputs.json">JSON</a>' in landing
 
     def test_landing_share_button(self):
         html = render_landing(
             "T", [("prod", "prod", 1, "now", "")], "now", share_url="https://x.org/r/"
         )
-        assert 'data-raw="https://x.org/r/">copy link</button>' in html
+        assert 'data-raw="https://x.org/r/" data-done="\u2713">\U0001f517</button>' in html
         assert "button.copy" in html
 
     def test_cli_site_url_workspaces(self, tmp_path):
@@ -437,8 +467,10 @@ class TestPageChrome:
             ]
         )
         assert rc == 0
-        assert 'data-raw="https://x.org/r/">copy link' in (out / "index.html").read_text("utf-8")
-        assert 'data-raw="https://x.org/r/prod/">copy link' in (
+        assert 'data-raw="https://x.org/r/" data-done="\u2713">\U0001f517' in (
+            out / "index.html"
+        ).read_text("utf-8")
+        assert 'data-raw="https://x.org/r/prod/" data-done="\u2713">\U0001f517' in (
             out / "prod" / "index.html"
         ).read_text("utf-8")
 
@@ -455,7 +487,9 @@ class TestPageChrome:
             ]
         )
         assert rc == 0
-        assert 'data-raw="https://x.org/r/">copy link' in (out / "index.html").read_text("utf-8")
+        assert 'data-raw="https://x.org/r/" data-done="\u2713">\U0001f517' in (
+            out / "index.html"
+        ).read_text("utf-8")
 
     def test_landing_renders_time_element_and_age_script(self):
         html = render_landing(
