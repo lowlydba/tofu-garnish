@@ -45,7 +45,7 @@ jobs:
 
       - name: Garnish outputs
         id: garnish
-        uses: ./
+        uses: $/
         with:
           workspaces: |
             prod=demo-outputs.json
