@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.12", "3.14"]
+        python-version: ["3.12", "3.14"]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -250,6 +250,6 @@ jobs:
     permissions: {}
     steps:
       - name: Roll up job statuses
-        uses: lowlydba/are-we-good@4b62765391e357e78d0572113ab8b1c7d6b8d12a # v1.0.4
+        uses: lowlydba/are-we-good@0f90ea9fa5e47188fcb69d9306fb8b3abb656018 # v1.2.0
         with:
           jobs: ${{ toJSON(needs) }}

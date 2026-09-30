@@ -107,12 +107,15 @@ def generate_site(site_dir: str) -> None:
     module_dir = os.environ.get("GARNISH_MODULE_DIR", "")
     title = os.environ.get("GARNISH_TITLE", "Tofu Outputs")
     source_url = os.environ.get("GARNISH_SOURCE_URL", "")
+    site_url = os.environ.get("GARNISH_SITE_URL", "")
     footer = os.environ.get("GARNISH_FOOTER", "true")
     write_outputs_json = os.environ.get("GARNISH_OUTPUTS_JSON", "true")
 
     argv = ["--output-dir", site_dir, "--title", title]
     if source_url:
         argv += ["--source-url", source_url]
+    if site_url:
+        argv += ["--site-url", site_url]
     if footer != "true":
         argv.append("--no-footer")
     if write_outputs_json != "true":
