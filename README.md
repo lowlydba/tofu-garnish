@@ -19,7 +19,7 @@ output` or spelunking through state.
 **[👉 See it in action: live demo site][demo]**
 
 * 🔒 dependency-free (two stdlib-only Python scripts, no third-party actions)
-* 🍽️ structure-aware HTML: tables, not JSON walls
+* 🍽️ structure-aware HTML: collapsible trees, not JSON walls
 * 🏢 discrete multi-workspace publishing without clobbering
 * 🙈 sensitive outputs masked automatically
 * 🔌 plug-and-play with [dflook/terraform-github-actions][dflook]

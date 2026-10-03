@@ -44,11 +44,9 @@ output "vpc_id" {
 
 ## Keep sibling objects shape-uniform
 
-A list of dicts always becomes a columnar table: one row per item, one
-column per key seen across the whole list. Uniform shapes give a clean
-table; a list with inconsistent keys still renders as one, but with `—` in
-every cell where an item is missing that column, so keep the keys
-consistent:
+A list of dicts becomes a tree with one collapsible node per item (keyed by
+its index), each listing that item's keys. Uniform shapes make the items easy
+to compare at a glance, so keep the keys consistent:
 
 ```hcl
 output "subnets" {
@@ -63,7 +61,7 @@ output "subnets" {
 }
 ```
 
-A one-off nested structure is fine as a map (renders as a key/value table);
+A one-off nested structure is fine as a map (renders as a nested tree node);
 save list-of-objects for genuinely repeated shapes.
 
 ## Mark sensitive outputs sensitive
@@ -83,7 +81,7 @@ belongs in a secrets manager instead of an output.
 
 ## Flatten what should be copy-button-friendly
 
-Every top-level row gets a single copy button: plain text for scalars,
+Every node gets a copy button (shown on hover): plain text for scalars,
 pretty JSON for anything nested. If an output's whole purpose is "the thing
 someone pastes into a CLI or console field", make it a scalar rather than a
 field buried three levels into a map.

@@ -228,72 +228,44 @@ def _raw_text(value: object) -> str:
     return json.dumps(value, indent=2)
 
 
-def _copy_button(value: object) -> str:
+def _copy_button(value: object, label: str = "value") -> str:
+    name = f"'{label}'" if label != "value" else label
+    tip = _esc(f"Copy {name}" if _is_scalar(value) else f"Copy {name} as JSON")
     return (
-        '<button class="copy" type="button" title="Copy value" aria-label="Copy value" '
+        f'<button class="copy" type="button" title="{tip}" aria-label="{tip}" '
         f'data-done="{CHECK_MARK}" data-raw="{_esc(_raw_text(value))}">{COPY_ICON}</button>'
     )
 
 
-def _render_mapping(value: dict, depth: int) -> str:
-    if not value:
-        return '<span class="empty">(empty map)</span>'
-    rows = []
-    for k, v in value.items():
-        act = f'<td class="act">{_copy_button(v)}</td>' if depth == 0 else ""
-        rows.append(
-            f'<tr><th scope="row">{_esc(k)}</th><td>{_render_value(v, depth + 1)}</td>{act}</tr>'
+def _render_node(key: str, value: object, depth: int) -> str:
+    """One tree node: a leaf row, or a collapsible branch for maps and lists."""
+    label = f'<span class="k">{_esc(key)}</span>'
+    copy = _copy_button(value, key)
+    if _is_scalar(value):
+        body = _render_scalar(value)
+    elif not value:
+        body = f'<span class="empty">({"empty map" if isinstance(value, dict) else "empty list"})</span>'
+    else:
+        hint = f"{{{len(value)}}}" if isinstance(value, dict) else f"[{len(value)}]"
+        open_attr = " open" if depth <= 1 else ""
+        return (
+            f'<li><details{open_attr}><summary>{label}<span class="hint">{hint}</span>{copy}'
+            f"</summary>{_render_children(value, depth + 1)}</details></li>"
         )
-    return f'<table class="kv"><tbody>{"".join(rows)}</tbody></table>'
+    return f'<li><div class="row">{label}<span class="v">{body}</span>{copy}</div></li>'
 
 
-def _render_uniform_list(value: list, depth: int) -> str:
-    """Render a list of mappings as a columnar table with one copy button per row."""
-    columns: list[str] = []
-    for item in value:
-        for key in item:
-            if key not in columns:
-                columns.append(key)
-    head = "".join(f'<th scope="col">{_esc(c)}</th>' for c in columns)
-    if depth == 0:
-        head += '<th scope="col" class="act"></th>'
-    body_rows = []
-    for item in value:
-        cells = "".join(
-            f"<td>{_render_value(item[c], depth + 1)}</td>"
-            if c in item
-            else '<td><span class="empty">—</span></td>'
-            for c in columns
-        )
-        if depth == 0:
-            cells += f'<td class="act">{_copy_button(item)}</td>'
-        body_rows.append(f"<tr>{cells}</tr>")
-    return (
-        '<table class="grid"><thead><tr>'
-        f"{head}</tr></thead><tbody>{''.join(body_rows)}</tbody></table>"
-    )
-
-
-def _render_list(value: list, depth: int) -> str:
-    if not value:
-        return '<span class="empty">(empty list)</span>'
-    if all(isinstance(item, dict) for item in value):
-        return _render_uniform_list(value, depth)
-    items = "".join(
-        f"<li>{_render_value(v, depth + 1)}"
-        + (f" {_copy_button(v)}" if depth == 0 else "")
-        + "</li>"
-        for v in value
-    )
-    return f'<ul class="seq">{items}</ul>'
+def _render_children(value: dict | list, depth: int) -> str:
+    items = value.items() if isinstance(value, dict) else enumerate(value)
+    return f'<ul class="tree">{"".join(_render_node(str(k), v, depth) for k, v in items)}</ul>'
 
 
 def _render_value(value: object, depth: int = 0) -> str:
     if _is_scalar(value):
         return _render_scalar(value)
-    if isinstance(value, dict):
-        return _render_mapping(value, depth)
-    return _render_list(value, depth)
+    if not value:
+        return f'<span class="empty">({"empty map" if isinstance(value, dict) else "empty list"})</span>'
+    return _render_children(value, depth)
 
 
 def _search_terms(value: object):
@@ -363,13 +335,22 @@ button.anchor { padding: 0; border: 0; font-size: 0.8em; opacity: 0.35; }
 button.anchor:hover, button.anchor:focus-visible { opacity: 1; }
 section.output h2 button.anchor { margin-right: 0.4rem; }
 .desc { color: var(--muted); font-size: 0.9rem; margin: -0.35rem 0 0.5rem; }
-table { border-collapse: collapse; width: 100%; margin: 0.25rem 0; }
-th, td { border: 1px solid var(--border); padding: 0.3rem 0.6rem; text-align: left; vertical-align: top; font-size: 0.9rem; }
-table.kv > tbody > tr > th { width: 30%; font-weight: 600; }
-td.act, th.act { width: 1%; white-space: nowrap; text-align: center; }
-code { font-family: ui-monospace, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
-ul.seq { margin: 0.25rem 0; padding-left: 1.5rem; list-style: disc; }
-ul.seq li::marker { color: var(--muted); }
+ul.tree { list-style: none; margin: 0; padding: 0; }
+section.output > ul.tree { margin: 0 -0.5rem; }
+ul.tree ul.tree { padding-left: 1.25rem; }
+.row, summary { display: flex; align-items: baseline; gap: 0.5rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.9rem; }
+.row { padding-left: 1.5rem; }
+.row:hover, summary:hover { background: color-mix(in srgb, var(--muted) 10%, transparent); }
+summary { cursor: pointer; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "\\25B8"; width: 1rem; margin-left: -0.5rem; padding-left: 0.5rem; color: var(--muted); flex: none; }
+details[open] > summary::before { content: "\\25BE"; }
+.k { color: var(--muted); flex: none; }
+.row .k { min-width: 11rem; }
+.v { min-width: 0; }
+.hint { color: var(--muted); font-size: 0.8rem; opacity: 0.7; }
+.row button.copy, summary button.copy { margin-left: auto; opacity: 0; }
+.row:hover button.copy, summary:hover button.copy, button.copy:focus-visible { opacity: 1; }code { font-family: ui-monospace, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
 .scalar { display: inline-flex; align-items: baseline; gap: 0.5rem; max-width: 100%; }
 button.copy { font-size: 0.7rem; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; padding: 0.1rem 0.4rem; }
 button.copy:hover { color: inherit; }
@@ -391,6 +372,10 @@ document.getElementById('filter').addEventListener('input', function () {
   document.querySelectorAll('section.output').forEach(function (s) {
     var show = !q || s.dataset.search.indexOf(q) !== -1;
     s.style.display = show ? '' : 'none';
+    if (show) { s.querySelectorAll('details').forEach(function (d) {
+      if (d.dataset.o === undefined) { d.dataset.o = d.open ? '1' : ''; }
+      d.open = q ? true : d.dataset.o === '1';
+    }); }
     if (show) { any = true; }
   });
   document.getElementById('no-match').style.display = any ? 'none' : 'block';

@@ -14,10 +14,10 @@ human-readable URL that is regenerated on every apply.
 
 Raw `output -json` is noisy: values are buried in `value`/`type`/`sensitive`
 wrappers, nested objects become walls of braces, and nothing is scannable.
-tofu-garnish flattens that into structure-aware HTML: maps become key/value
-tables, lists of similar objects become columnar tables (one row per subnet,
-one column per attribute), and every top-level row gets a single copy button
-(plain text for scalars, pretty JSON for anything nested). It's
+tofu-garnish flattens that into structure-aware HTML: maps and lists become
+collapsible trees (the first two levels open, deeper levels collapsed), and every
+node gets a copy button on hover (plain text for scalars, pretty JSON for
+anything nested). It's
 deliberately KISS: self-contained HTML files, no framework, no build
 step, dark-mode via `prefers-color-scheme`, and a few lines of vanilla JS
 for filtering and copying.

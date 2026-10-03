@@ -55,9 +55,8 @@ Open the site URL shown in the Pages settings (also available as the
 
 Expected result:
 
-- Each output rendered as a card: maps as key/value tables, lists of
-  objects as columnar tables.
-- One copy button per row; nested values copy as pretty JSON.
+- Each output rendered as a card with a collapsible tree for maps and lists.
+- A copy button on every node (shown on hover); nested values copy as pretty JSON.
 - A filter box that matches names, keys, and values.
 - Sensitive outputs masked.
 - A meta line linking the commit and workflow run that produced the page.
