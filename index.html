@@ -22,13 +22,22 @@ button.anchor { padding: 0; border: 0; font-size: 0.8em; opacity: 0.35; }
 button.anchor:hover, button.anchor:focus-visible { opacity: 1; }
 section.output h2 button.anchor { margin-right: 0.4rem; }
 .desc { color: var(--muted); font-size: 0.9rem; margin: -0.35rem 0 0.5rem; }
-table { border-collapse: collapse; width: 100%; margin: 0.25rem 0; }
-th, td { border: 1px solid var(--border); padding: 0.3rem 0.6rem; text-align: left; vertical-align: top; font-size: 0.9rem; }
-table.kv > tbody > tr > th { width: 30%; font-weight: 600; }
-td.act, th.act { width: 1%; white-space: nowrap; text-align: center; }
-code { font-family: ui-monospace, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
-ul.seq { margin: 0.25rem 0; padding-left: 1.5rem; list-style: disc; }
-ul.seq li::marker { color: var(--muted); }
+ul.tree { list-style: none; margin: 0; padding: 0; }
+section.output > ul.tree { margin: 0 -0.5rem; }
+ul.tree ul.tree { padding-left: 1.25rem; }
+.row, summary { display: flex; align-items: baseline; gap: 0.5rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.9rem; }
+.row { padding-left: 1.5rem; }
+.row:hover, summary:hover { background: color-mix(in srgb, var(--muted) 10%, transparent); }
+summary { cursor: pointer; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "\25B8"; width: 1rem; margin-left: -0.5rem; padding-left: 0.5rem; color: var(--muted); flex: none; }
+details[open] > summary::before { content: "\25BE"; }
+.k { color: var(--muted); flex: none; }
+.row .k { min-width: 11rem; }
+.v { min-width: 0; }
+.hint { color: var(--muted); font-size: 0.8rem; opacity: 0.7; }
+.row button.copy, summary button.copy { margin-left: auto; opacity: 0; }
+.row:hover button.copy, summary:hover button.copy, button.copy:focus-visible { opacity: 1; }code { font-family: ui-monospace, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
 .scalar { display: inline-flex; align-items: baseline; gap: 0.5rem; max-width: 100%; }
 button.copy { font-size: 0.7rem; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; padding: 0.1rem 0.4rem; }
 button.copy:hover { color: inherit; }
@@ -46,10 +55,10 @@ section.ws p { color: var(--muted); margin: 0; }
 <body>
 <header>
 <h1>tofu-garnish demo</h1>
-<p>2 workspaces · generated 2026-09-30 17:14 UTC · commit <a class="src" href="https://github.com/lowlydba/tofu-garnish/commit/6ac8504910034f7f1d2e9cf07837c47dc07bbdff">6ac8504</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish/actions/runs/36749968503">workflow run</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a></p>
+<p>2 workspaces · generated 2026-10-03 16:29 UTC · commit <a class="src" href="https://github.com/lowlydba/tofu-garnish/commit/82f7799b4ea5d582470e1177e2d8adfd631c18dd">82f7799</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish/actions/runs/37137031581">workflow run</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a></p>
 </header>
 <main>
-<section class="output ws" data-search="prod"><h2><a href="prod/">prod</a></h2><p>7 outputs · updated <time datetime="2026-09-30T17:14:34.187806+00:00">2026-09-30 17:14 UTC</time> · <a class="src" href="prod/outputs.json">JSON</a></p></section><section class="output ws" data-search="staging"><h2><a href="staging/">staging</a></h2><p>3 outputs · updated <time datetime="2026-09-30T17:14:34.187806+00:00">2026-09-30 17:14 UTC</time> · <a class="src" href="staging/outputs.json">JSON</a></p></section>
+<section class="output ws" data-search="prod"><h2><a href="prod/">prod</a></h2><p>7 outputs · updated <time datetime="2026-10-03T16:29:29.957146+00:00">2026-10-03 16:29 UTC</time> · <a class="src" href="prod/outputs.json">JSON</a></p></section><section class="output ws" data-search="staging"><h2><a href="staging/">staging</a></h2><p>3 outputs · updated <time datetime="2026-10-03T16:29:29.957146+00:00">2026-10-03 16:29 UTC</time> · <a class="src" href="staging/outputs.json">JSON</a></p></section>
 </main>
 <footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
 <script>
