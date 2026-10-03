@@ -267,6 +267,7 @@ def _render_value(value: object, depth: int = 0) -> str:
         return f'<span class="empty">({"empty map" if isinstance(value, dict) else "empty list"})</span>'
     return _render_children(value, depth)
 
+
 def _search_terms(value: object):
     """Yield all keys and scalar leaf values within a value, for filtering."""
     if isinstance(value, dict):

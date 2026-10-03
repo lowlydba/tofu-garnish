@@ -176,6 +176,7 @@ class TestCopyButtons:
         html = render('{"o": {"vpc": {"id": "vpc-123"}}}')
         assert 'title="Copy &#x27;vpc&#x27; as JSON"' in html
         assert 'title="Copy &#x27;id&#x27;"' in html
+
     def test_row_button_copies_nested_json(self):
         html = render('{"vpc": {"tags": {"Team": "platform"}}}')
         # data-raw on the vpc row holds pretty JSON including nested leaves.
@@ -219,6 +220,7 @@ class TestRenderNested:
         assert "<details" in html
         assert '<span class="k">az</span>' in html
         assert "<code>subnet-053008016a2c1768c</code>" in html
+
     def test_empty_containers(self):
         html = render('{"m": {}, "l": []}')
         assert "(empty map)" in html
