@@ -161,20 +161,21 @@ class TestCopyButtons:
     @pytest.mark.parametrize(
         ("outputs_json", "buttons"),
         [
-            # one button per map row
+            # one button per node under the output
             ('{"vpc": {"id": "vpc-123", "cidr": "10.0.0.0/16"}}', 2),
-            # nested leaves get no buttons; the containing row's button
-            # copies the whole nested structure
-            ('{"vpc": {"id": "vpc-123", "tags": {"Team": "platform"}}}', 2),
-            # one button per grid row
-            ('{"subnets": [{"id": "s-1"}, {"id": "s-2"}, {"id": "s-3"}]}', 3),
-            # one button per scalar list item
+            # nested nodes get their own buttons too (id, tags, Team)
+            ('{"vpc": {"id": "vpc-123", "tags": {"Team": "platform"}}}', 3),
+            ('{"subnets": [{"id": "s-1"}, {"id": "s-2"}, {"id": "s-3"}]}', 6),
             ('{"arns": ["arn:a", "arn:b"]}', 2),
         ],
     )
-    def test_one_button_per_top_level_row(self, outputs_json, buttons):
+    def test_one_button_per_node(self, outputs_json, buttons):
         assert render(outputs_json).count('<button class="copy"') == buttons
 
+    def test_button_tooltip_names_key_and_json(self):
+        html = render('{"o": {"vpc": {"id": "vpc-123"}}}')
+        assert 'title="Copy &#x27;vpc&#x27; as JSON"' in html
+        assert 'title="Copy &#x27;id&#x27;"' in html
     def test_row_button_copies_nested_json(self):
         html = render('{"vpc": {"tags": {"Team": "platform"}}}')
         # data-raw on the vpc row holds pretty JSON including nested leaves.
@@ -187,39 +188,37 @@ class TestCopyButtons:
 
 
 class TestRenderNested:
-    def test_map_becomes_kv_table(self):
+    def test_map_becomes_tree_rows(self):
         html = render('{"vpc": {"id": "vpc-123", "cidr": "10.0.0.0/16"}}')
-        assert '<table class="kv">' in html
-        assert '<th scope="row">id</th>' in html
+        assert '<ul class="tree">' in html
+        assert '<span class="k">id</span>' in html
         assert "<code>vpc-123</code>" in html
 
     def test_deeply_nested_map(self):
-        html = render('{"a": {"b": {"c": "leaf"}}}')
-        assert html.count('<table class="kv">') == 2
+        html = render('{"a": {"b": {"c": {"d": {"e": "leaf"}}}}}')
+        assert html.count("<details") == 3
         assert "<code>leaf</code>" in html
 
-    def test_list_of_scalars_becomes_unordered_list(self):
+    def test_branches_open_two_levels_then_collapse(self):
+        html = render('{"a": {"b": {"c": {"d": {"e": "leaf"}}}}}')
+        assert html.count("<details open>") == 2
+        assert html.count("<details>") == 1
+
+    def test_branch_hint_shows_size(self):
+        html = render('{"o": {"a": {"x": 1, "y": 2}, "l": [1, 2, 3]}}')
+        assert '<span class="hint">{2}</span>' in html
+        assert '<span class="hint">[3]</span>' in html
+
+    def test_list_items_keyed_by_index(self):
         html = render('{"arns": ["arn:a", "arn:b"]}')
-        assert '<ul class="seq">' in html
+        assert '<span class="k">0</span>' in html
         assert "<code>arn:a</code>" in html
 
-    def test_list_of_objects_becomes_columnar_table(self):
+    def test_list_of_objects(self):
         html = render(fixture("tofu_output_json.json"))
-        assert '<table class="grid">' in html
-        assert '<th scope="col">az</th>' in html
+        assert "<details" in html
+        assert '<span class="k">az</span>' in html
         assert "<code>subnet-053008016a2c1768c</code>" in html
-
-    def test_ragged_list_of_objects_fills_missing_cells(self):
-        html = render('{"items": [{"a": 1}, {"b": 2}]}')
-        assert '<th scope="col">a</th>' in html
-        assert '<th scope="col">b</th>' in html
-        assert '<span class="empty">—</span>' in html
-
-    def test_mixed_list_falls_back_to_unordered_list(self):
-        html = render('{"items": [{"a": 1}, "plain"]}')
-        assert '<ul class="seq">' in html
-        assert '<table class="grid">' not in html
-
     def test_empty_containers(self):
         html = render('{"m": {}, "l": []}')
         assert "(empty map)" in html
