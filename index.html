@@ -55,10 +55,10 @@ section.ws p { color: var(--muted); margin: 0; }
 <body>
 <header>
 <h1>tofu-garnish demo</h1>
-<p>2 workspaces · generated 2026-10-03 16:29 UTC · commit <a class="src" href="https://github.com/lowlydba/tofu-garnish/commit/82f7799b4ea5d582470e1177e2d8adfd631c18dd">82f7799</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish/actions/runs/37137031581">workflow run</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a></p>
+<p>2 workspaces · generated 2026-10-14 18:52 UTC · commit <a class="src" href="https://github.com/lowlydba/tofu-garnish/commit/99a7b205cb681c115066568ff2f53987953a170c">99a7b20</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish/actions/runs/38618836482">workflow run</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a></p>
 </header>
 <main>
-<section class="output ws" data-search="prod"><h2><a href="prod/">prod</a></h2><p>7 outputs · updated <time datetime="2026-10-03T16:29:29.957146+00:00">2026-10-03 16:29 UTC</time> · <a class="src" href="prod/outputs.json">JSON</a></p></section><section class="output ws" data-search="staging"><h2><a href="staging/">staging</a></h2><p>3 outputs · updated <time datetime="2026-10-03T16:29:29.957146+00:00">2026-10-03 16:29 UTC</time> · <a class="src" href="staging/outputs.json">JSON</a></p></section>
+<section class="output ws" data-search="prod"><h2><a href="prod/">prod</a></h2><p>7 outputs · updated <time datetime="2026-10-14T18:52:28.078848+00:00">2026-10-14 18:52 UTC</time> · <a class="src" href="prod/outputs.json">JSON</a></p></section><section class="output ws" data-search="staging"><h2><a href="staging/">staging</a></h2><p>3 outputs · updated <time datetime="2026-10-14T18:52:28.078848+00:00">2026-10-14 18:52 UTC</time> · <a class="src" href="staging/outputs.json">JSON</a></p></section>
 </main>
 <footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
 <script>
@@ -79,9 +79,19 @@ document.addEventListener('click', function (e) {
   var btn = e.target.closest('button.copy');
   if (!btn) { return; }
   var label = btn.innerHTML;
+  var box = btn.getBoundingClientRect();
   navigator.clipboard.writeText(btn.dataset.raw).then(function () {
-    btn.textContent = btn.dataset.done || 'copied!';
-    setTimeout(function () { btn.innerHTML = label; }, 1200);
+    btn.style.boxSizing = 'border-box';
+    btn.style.width = box.width + 'px';
+    btn.style.height = box.height + 'px';
+    btn.style.flex = 'none';
+    btn.style.overflow = 'hidden';
+    btn.style.whiteSpace = 'nowrap';
+    btn.textContent = btn.dataset.done || '\u2713';
+    setTimeout(function () {
+      btn.innerHTML = label;
+      btn.removeAttribute('style');
+    }, 1200);
   });
 });
 </script>
