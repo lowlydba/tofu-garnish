@@ -387,9 +387,18 @@ document.addEventListener('click', function (e) {
   var btn = e.target.closest('button.copy');
   if (!btn) { return; }
   var label = btn.innerHTML;
+  var box = btn.getBoundingClientRect();
   navigator.clipboard.writeText(btn.dataset.raw).then(function () {
-    btn.textContent = btn.dataset.done || 'copied!';
-    setTimeout(function () { btn.innerHTML = label; }, 1200);
+    btn.style.boxSizing = 'border-box';
+    btn.style.width = box.width + 'px';
+    btn.style.height = box.height + 'px';
+    btn.style.overflow = 'hidden';
+    btn.style.whiteSpace = 'nowrap';
+    btn.textContent = btn.dataset.done || '\\u2713';
+    setTimeout(function () {
+      btn.innerHTML = label;
+      btn.removeAttribute('style');
+    }, 1200);
   });
 });
 """
