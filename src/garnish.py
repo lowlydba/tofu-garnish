@@ -392,6 +392,7 @@ document.addEventListener('click', function (e) {
     btn.style.boxSizing = 'border-box';
     btn.style.width = box.width + 'px';
     btn.style.height = box.height + 'px';
+    btn.style.flex = 'none';
     btn.style.overflow = 'hidden';
     btn.style.whiteSpace = 'nowrap';
     btn.textContent = btn.dataset.done || '\\u2713';
