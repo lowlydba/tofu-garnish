@@ -23,19 +23,18 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - name: Set up uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
+          version: "0.13.5"
           python-version: "3.13"
-
-      - name: Install ruff
-        run: python -m pip install --quiet ruff
+          enable-cache: false
 
       - name: Ruff check
-        run: ruff check .
+        run: uv run --locked ruff check .
 
       - name: Ruff format check
-        run: ruff format --check .
+        run: uv run --locked ruff format --check .
 
   test:
     name: Test (Python ${{ matrix.python-version }})
@@ -52,16 +51,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - name: Set up uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
+          version: "0.13.5"
           python-version: ${{ matrix.python-version }}
-
-      - name: Install test dependencies
-        run: python -m pip install --quiet pytest pytest-cov
+          enable-cache: false
 
       - name: Run tests with coverage
-        run: python -m pytest --cov --cov-fail-under=95
+        run: uv run --locked python -m pytest --cov --cov-fail-under=95
 
   action-test:
     name: Integration test (action)
