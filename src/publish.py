@@ -225,7 +225,11 @@ def publish(api=None, sleep=None) -> int:
         generate_site(str(site_dir))
         (site_dir / ".nojekyll").write_text("", encoding="utf-8")
         _set_output("site-dir", str(site_dir))
-        return _collect_files(site_dir, prefix)
+        entries = _collect_files(site_dir, prefix)
+        if prefix:
+            # Pages only honors .nojekyll at the publishing root.
+            entries.append({"path": ".nojekyll", "mode": "100644", "type": "blob", "content": ""})
+        return entries
 
     if not _commit_with_retry(api, sleep, repo, branch, build):
         return 1

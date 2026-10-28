@@ -1,11 +1,11 @@
 name: Preview
 
 # Publishes the demo site for a pull request under pr-preview/<number>/ on the
-# Pages branch, and removes it again when the pull request closes. Skipped for
-# forks, whose tokens cannot push.
+# Pages branch. preview-cleanup.yml removes it when the pull request closes.
+# Skipped for forks, whose tokens cannot push.
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
     paths:
       - src/**
       - action.yml
@@ -16,13 +16,13 @@ on:
 permissions: {}
 
 concurrency:
-  group: tofu-garnish-demo
+  group: tofu-garnish-preview-${{ github.event.pull_request.number }}
   cancel-in-progress: false
 
 jobs:
   preview:
     name: Deploy PR preview
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action != 'closed'
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       contents: write # push the preview to the gh-pages branch
@@ -82,21 +82,3 @@ jobs:
           )
           gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none \
             --body "$body"
-
-  cleanup:
-    name: Remove PR preview
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write # delete the preview from the gh-pages branch
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Remove preview
-        uses: $/
-        with:
-          remove: "true"
-          site-path: pr-preview/${{ github.event.pull_request.number }}

@@ -1,0 +1,33 @@
+name: Preview cleanup
+
+# Removes a pull request's preview from the Pages branch when it closes. Has no
+# path filter so cleanup runs even if the final diff no longer touches
+# previewed files. Skipped for forks, which never get a preview.
+on:
+  pull_request:
+    types: [closed]
+
+permissions: {}
+
+concurrency:
+  group: tofu-garnish-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Remove PR preview
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # delete the preview from the gh-pages branch
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Remove preview
+        uses: $/
+        with:
+          remove: "true"
+          site-path: pr-preview/${{ github.event.pull_request.number }}

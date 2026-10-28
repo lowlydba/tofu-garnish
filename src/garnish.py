@@ -543,6 +543,7 @@ def render_page(page: Page) -> str:
 # ---------------------------------------------------------------------------
 
 _SAFE_SCHEME = re.compile(r"^(https?|mailto):", re.I)
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 _ANY_SCHEME = re.compile(r"^[a-z][a-z0-9+.-]*:", re.I)
 _MD_LINK = re.compile(r"\[([^\]]+)\]\(([^)\s]+)\)")
 _MD_SEPARATOR = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$")
@@ -556,6 +557,8 @@ def _md_href(href: str, resolve=None) -> str:
     ``resolve`` maps a relative path to a final href, or None to leave it as
     written. Without it, ``*.md`` links point at sibling docs pages.
     """
+    if _CONTROL_CHARS.search(href):
+        return "#"
     if _ANY_SCHEME.match(href) and not _SAFE_SCHEME.match(href):
         return "#"
     if _ANY_SCHEME.match(href) or href.startswith(("#", "/")):

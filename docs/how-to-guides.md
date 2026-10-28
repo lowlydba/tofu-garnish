@@ -87,7 +87,7 @@ the action at it:
 ```
 
 Sensitive outputs are automatically masked on the page (see
-[Explanation](explanation.md#sensitive-values)).
+[Explanation](explanation.md#how-are-sensitive-values-handled)).
 
 ## Pass outputs inline instead of a file
 

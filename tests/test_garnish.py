@@ -1131,6 +1131,7 @@ def test_render_markdown_escapes_html_and_sanitizes_links():
     assert "<script>" not in html
     assert 'href="#"' in html
     assert 'href="../aws/#x"' in html
+    assert 'href="#"' in garnish.render_markdown("[x](\x01javascript:alert(1)) [y](java\tscript:1)")
 
 
 def test_docs_dir_builds_pages_and_links(tmp_path, monkeypatch):

@@ -399,6 +399,7 @@ class TestSitePath:
         assert run_publish(api=api) == 0
         paths = {e["path"] for e in api.last_tree["tree"]}
         assert "pr-preview/7/index.html" in paths
+        assert ".nojekyll" in paths
         assert outputs_of(env)["page-url"] == "https://ex.io/r/pr-preview/7/"
 
     def test_rejects_path_traversal(self, env, monkeypatch):
