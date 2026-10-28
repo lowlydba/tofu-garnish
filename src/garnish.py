@@ -935,7 +935,10 @@ def render_landing(
     for name, slug, count, updated, updated_at in workspaces:
         stamp = ""
         if updated and updated_at:
-            stamp = f' · updated <time datetime="{_esc(updated_at)}">{_esc(updated)}</time>'
+            stamp = (
+                f' · updated <time datetime="{_esc(updated_at)}" title="{_esc(updated)}">'
+                f"{_esc(updated)}</time>"
+            )
         elif updated:
             stamp = f" · updated {_esc(updated)}"
         sections.append(

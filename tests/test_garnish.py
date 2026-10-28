@@ -490,9 +490,10 @@ class TestPageChrome:
             [("prod", "prod", 1, "1970-01-01 00:00 UTC", "1970-01-01T00:00:00+00:00")],
             "now",
         )
-        assert 'updated <time datetime="1970-01-01T00:00:00+00:00">1970-01-01 00:00 UTC</time>' in (
-            html
-        )
+        assert (
+            'updated <time datetime="1970-01-01T00:00:00+00:00" title="1970-01-01 00:00 UTC">'
+            "1970-01-01 00:00 UTC</time>"
+        ) in html
         assert "time[datetime]" in html
 
     def test_landing_without_iso_timestamp_renders_plain_text(self):
@@ -949,9 +950,7 @@ class TestMergeMode:
         out = tmp_path / "site"
         assert self._run(out, f"prod={FIXTURES / 'dflook_json_output_path.json'}") == 0
         landing = (out / "index.html").read_text(encoding="utf-8")
-        assert 'updated <time datetime="1970-01-01T00:00:00+00:00">1970-01-01 00:00 UTC</time>' in (
-            landing
-        )
+        assert 'title="1970-01-01 00:00 UTC">1970-01-01 00:00 UTC</time>' in landing
 
     def test_merge_preserves_original_timestamps(self, tmp_path, monkeypatch):
         out = tmp_path / "site"
