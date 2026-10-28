@@ -66,6 +66,9 @@ article.doc code { background: color-mix(in srgb, var(--muted) 12%, transparent)
 article.doc pre code { background: none; padding: 0; }
 article.doc blockquote { border-left: 3px solid var(--border); margin-left: 0; padding-left: 1rem; color: var(--muted); }
 article.doc table { border-collapse: collapse; }
+article.doc a.anchor { margin-left: 0.4rem; color: var(--muted); text-decoration: none; opacity: 0; font-weight: 400; }
+article.doc :is(h1, h2, h3, h4, h5, h6):hover a.anchor, article.doc a.anchor:focus { opacity: 1; }
+article.doc :is(h1, h2, h3, h4, h5, h6) { scroll-margin-top: 1rem; }
 article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25rem 0.6rem; text-align: left; }
 </style>
 </head>
@@ -75,10 +78,10 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 </header>
 <main>
 <article class="doc">
-<p><a href="https://github.com/lowlydba/tofu-garnish/blob/HEAD/README.md">← Back to README</a> · <a href="../tutorial/">Tutorial</a> · <a href="../how-to-guides/">How-to guides</a> · <a href="../reference/">Reference</a> · <a href="../explanation/">Explanation</a></p>
-<h1>Writing outputs.tf for a good garnish page</h1>
+<p><a href="../tutorial/">Tutorial</a> · <a href="../how-to-guides/">How-to guides</a> · <a href="../reference/">Reference</a> · <a href="../explanation/">Explanation</a></p>
+<h1 id="writing-outputstf-for-a-good-garnish-page">Writing outputs.tf for a good garnish page<a class="anchor" href="#writing-outputstf-for-a-good-garnish-page" aria-label="Copy link to this section">#</a></h1>
 <p>This page is for whoever (or whatever) is authoring <code>outputs.tf</code>, not for consuming the action. Point an AI coding agent at it (link it from your repo's <code>AGENTS.md</code>/<code>CLAUDE.md</code>) when you want generated Tofu to render well on a tofu-garnish page instead of just being valid HCL.</p>
-<h2>Name outputs so alphabetical order reads well</h2>
+<h2 id="name-outputs-so-alphabetical-order-reads-well">Name outputs so alphabetical order reads well<a class="anchor" href="#name-outputs-so-alphabetical-order-reads-well" aria-label="Copy link to this section">#</a></h2>
 <p>tofu-garnish has no grouping concept: outputs are rendered in a single list, sorted by name (<code>Output.name.lower()</code>). That sort order is the only structure the page has, so it doubles as the page's information architecture. Prefix related outputs consistently:</p>
 <pre><code>output &quot;vpc_id&quot; { ... }
 output &quot;vpc_cidr&quot; { ... }
@@ -87,13 +90,13 @@ output &quot;vpc_subnet_ids&quot; { ... }</code></pre>
 <pre><code>output &quot;id&quot; { ... }          # which resource?
 output &quot;subnets&quot; { ... }
 output &quot;cidr_block&quot; { ... }  # sorts nowhere near the other two</code></pre>
-<h2>Always set description</h2>
+<h2 id="always-set-description">Always set description<a class="anchor" href="#always-set-description" aria-label="Copy link to this section">#</a></h2>
 <p><code>description</code> is the only prose that reaches the page (OpenTofu only, via <code>tofu show -json -module</code>; see <a href="../explanation/#why-opentofu-only-for-descriptions">Explanation</a> for why Terraform can't provide it). An output with no <code>description</code> renders with just its name and value, no context for the person reading it:</p>
 <pre><code>output &quot;vpc_id&quot; {
   value       = aws_vpc.main.id
   description = &quot;VPC ID for the shared network stack.&quot;
 }</code></pre>
-<h2>Keep sibling objects shape-uniform</h2>
+<h2 id="keep-sibling-objects-shape-uniform">Keep sibling objects shape-uniform<a class="anchor" href="#keep-sibling-objects-shape-uniform" aria-label="Copy link to this section">#</a></h2>
 <p>A list of dicts becomes a tree with one collapsible node per item (keyed by its index), each listing that item's keys. Uniform shapes make the items easy to compare at a glance, so keep the keys consistent:</p>
 <pre><code>output &quot;subnets&quot; {
   value = [
@@ -106,17 +109,28 @@ output &quot;cidr_block&quot; { ... }  # sorts nowhere near the other two</code>
   description = &quot;Subnets in the shared VPC.&quot;
 }</code></pre>
 <p>A one-off nested structure is fine as a map (renders as a nested tree node); save list-of-objects for genuinely repeated shapes.</p>
-<h2>Mark sensitive outputs sensitive</h2>
+<h2 id="mark-sensitive-outputs-sensitive">Mark sensitive outputs sensitive<a class="anchor" href="#mark-sensitive-outputs-sensitive" aria-label="Copy link to this section">#</a></h2>
 <pre><code>output &quot;db_password&quot; {
   value       = random_password.db.result
   sensitive   = true
   description = &quot;Superuser password for the RDS instance.&quot;
 }</code></pre>
 <p><code>sensitive = true</code> masks the value on the page and drops it from <code>outputs.json</code> entirely (see <a href="../explanation/#sensitive-values">sensitive value handling</a>). Don't rely on a vague name or a missing description to hide something that belongs in a secrets manager instead of an output.</p>
-<h2>Flatten what should be copy-button-friendly</h2>
+<h2 id="flatten-what-should-be-copy-button-friendly">Flatten what should be copy-button-friendly<a class="anchor" href="#flatten-what-should-be-copy-button-friendly" aria-label="Copy link to this section">#</a></h2>
 <p>Every node gets a copy button (shown on hover): plain text for scalars, pretty JSON for anything nested. If an output's whole purpose is "the thing someone pastes into a CLI or console field", make it a scalar rather than a field buried three levels into a map.</p>
 </article>
 </main>
 <footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
+<script>
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('a.anchor');
+  if (!a) { return; }
+  var url = location.href.split('#')[0] + a.getAttribute('href');
+  history.replaceState(null, '', a.getAttribute('href'));
+  if (navigator.clipboard) { navigator.clipboard.writeText(url); }
+  a.textContent = '\u2713';
+  setTimeout(function () { a.textContent = '#'; }, 1200);
+});
+</script>
 </body>
 </html>

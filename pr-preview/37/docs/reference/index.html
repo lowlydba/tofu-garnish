@@ -66,6 +66,9 @@ article.doc code { background: color-mix(in srgb, var(--muted) 12%, transparent)
 article.doc pre code { background: none; padding: 0; }
 article.doc blockquote { border-left: 3px solid var(--border); margin-left: 0; padding-left: 1rem; color: var(--muted); }
 article.doc table { border-collapse: collapse; }
+article.doc a.anchor { margin-left: 0.4rem; color: var(--muted); text-decoration: none; opacity: 0; font-weight: 400; }
+article.doc :is(h1, h2, h3, h4, h5, h6):hover a.anchor, article.doc a.anchor:focus { opacity: 1; }
+article.doc :is(h1, h2, h3, h4, h5, h6) { scroll-margin-top: 1rem; }
 article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25rem 0.6rem; text-align: left; }
 </style>
 </head>
@@ -75,14 +78,14 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 </header>
 <main>
 <article class="doc">
-<p><a href="https://github.com/lowlydba/tofu-garnish/blob/HEAD/README.md">← Back to README</a> · <a href="../tutorial/">Tutorial</a> · <a href="../how-to-guides/">How-to guides</a> · <a href="../explanation/">Explanation</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
-<h1>Reference</h1>
-<h2>Action inputs</h2>
+<p><a href="../tutorial/">Tutorial</a> · <a href="../how-to-guides/">How-to guides</a> · <a href="../explanation/">Explanation</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
+<h1 id="reference">Reference<a class="anchor" href="#reference" aria-label="Copy link to this section">#</a></h1>
+<h2 id="action-inputs">Action inputs<a class="anchor" href="#action-inputs" aria-label="Copy link to this section">#</a></h2>
 <table><thead><tr><th>Input</th><th>Required</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>outputs-file</code></td><td>no*</td><td>none</td><td>Path to a JSON outputs file: the <code>json_output_path</code> file from <code>dflook/terraform-output</code>, or the output of <code>tofu output -json</code>.</td></tr><tr><td><code>outputs</code></td><td>no*</td><td>none</td><td>Inline JSON string of outputs, e.g. <code>toJson(steps.&lt;id&gt;.outputs)</code> from a <code>dflook/terraform-output</code> step. Ignored if <code>outputs-file</code> is set.</td></tr><tr><td><code>workspaces</code></td><td>no*</td><td>none</td><td>Multiline <code>name=path</code> pairs for multi-workspace sites. Only the named workspaces are overwritten on deploy. Takes precedence over other inputs.</td></tr><tr><td><code>module-dir</code></td><td>no</td><td>none</td><td><strong>OpenTofu ≥ 1.10 only.</strong> Root module directory; descriptions are extracted with <code>tofu show -json -module</code> and rendered on the page.</td></tr><tr><td><code>docs-dir</code></td><td>no</td><td>none</td><td>Directory of Markdown files rendered to <code>/docs/&lt;name&gt;/</code> and linked from the landing and output pages. <code>other.md</code> links are rewritten. Kept across <code>workspaces</code> deploys when omitted.</td></tr><tr><td><code>site-path</code></td><td>no</td><td>branch root</td><td>Subdirectory of the Pages branch to publish under (e.g. <code>pr-preview/42</code>). Other files on the branch are untouched.</td></tr><tr><td><code>remove</code></td><td>no</td><td><code>"false"</code></td><td><code>"true"</code> deletes <code>site-path</code> from the Pages branch instead of publishing (e.g. when a PR closes). Requires <code>site-path</code>.</td></tr><tr><td><code>title</code></td><td>no</td><td><code>Tofu Outputs</code></td><td>Title shown on the generated page(s).</td></tr><tr><td><code>source-repo-url</code></td><td>no</td><td>current repository</td><td>URL of the repo the outputs come from, rendered as a "source repository" link on each page. Set to <code>""</code> to omit the link.</td></tr><tr><td><code>site-url</code></td><td>no</td><td>none</td><td>Public base URL when the site is served from a vanity domain (e.g. <code>https://labs.example.org/my-repo</code>). Adds "copy link" buttons that copy URLs under it instead of the browser's address.</td></tr><tr><td><code>footer</code></td><td>no</td><td><code>"true"</code></td><td>Render the "Served with 💚 by 🌿 tofu-garnish" footer (links to this repo) on generated pages. Set <code>"false"</code> to omit it.</td></tr><tr><td><code>outputs-json</code></td><td>no</td><td><code>"true"</code></td><td>Write a machine-readable <code>outputs.json</code> next to each generated page (sensitive outputs omitted). Set <code>"false"</code> to publish HTML only.</td></tr><tr><td><code>output-dir</code></td><td>no</td><td><code>tofu-garnish-site</code></td><td>Where the site is written when <code>deploy</code> is <code>"false"</code>.</td></tr><tr><td><code>deploy</code></td><td>no</td><td><code>"true"</code></td><td>Commit the site to the Pages branch. Set <code>"false"</code> to only generate HTML.</td></tr><tr><td><code>pages-branch</code></td><td>no</td><td><code>gh-pages</code></td><td>Branch GitHub Pages serves from. Created automatically if missing.</td></tr><tr><td><code>github-token</code></td><td>no</td><td><code>github.token</code></td><td>Token used to read and push the Pages branch (needs <code>contents: write</code>).</td></tr></tbody></table>
 <p>\* Exactly one of <code>workspaces</code>, <code>outputs-file</code>, or <code>outputs</code> must be provided; the action fails if all are empty.</p>
-<h2>Action outputs</h2>
+<h2 id="action-outputs">Action outputs<a class="anchor" href="#action-outputs" aria-label="Copy link to this section">#</a></h2>
 <table><thead><tr><th>Output</th><th>Description</th></tr></thead><tbody><tr><td><code>page-url</code></td><td>URL of the GitHub Pages site (empty when <code>deploy</code> is <code>"false"</code>).</td></tr><tr><td><code>site-dir</code></td><td>Directory containing the generated <code>index.html</code>.</td></tr></tbody></table>
-<h2>Accepted input formats</h2>
+<h2 id="accepted-input-formats">Accepted input formats<a class="anchor" href="#accepted-input-formats" aria-label="Copy link to this section">#</a></h2>
 <p>Format detection is automatic:</p>
 <ol><li>**<code>tofu output -json</code> / <code>terraform output -json</code>**: each output wrapped</li></ol>
 <p>in <code>{"value": …, "type": …, "sensitive": …}</code>. Sensitive outputs are masked.</p>
@@ -90,7 +93,7 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 <p><code>json_output_path</code> file from <code>dflook/terraform-output</code>.</p>
 <ol><li><strong>String map</strong>: <code>{"name": "value-or-JSON-string", …}</code>, as produced by</li></ol>
 <p><code>toJson(steps.&lt;id&gt;.outputs)</code>. Strings that look like JSON arrays/objects are decoded; primitive strings are left untouched.</p>
-<h2>Site structure (workspaces mode)</h2>
+<h2 id="site-structure-workspaces-mode">Site structure (workspaces mode)<a class="anchor" href="#site-structure-workspaces-mode" aria-label="Copy link to this section">#</a></h2>
 <pre><code>gh-pages
 ├── .nojekyll
 ├── index.html        # landing page listing all workspaces
@@ -102,16 +105,16 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
     ├── index.html
     └── outputs.json</code></pre>
 <p>Workspace names are slugged for directory safety (<code>Prod US</code> → <code>prod-us/</code>); two names that slug identically are rejected.</p>
-<h2>Machine-readable outputs.json</h2>
+<h2 id="machine-readable-outputsjson">Machine-readable outputs.json<a class="anchor" href="#machine-readable-outputsjson" aria-label="Copy link to this section">#</a></h2>
 <p>Written next to every <code>index.html</code>, in single and workspaces mode (disable with the <code>outputs-json</code> input or <code>--no-outputs-json</code>). The shape is a contract:</p>
 <ul><li>A single JSON object mapping output name → value, exactly as parsed from</li></ul>
 <p>the input (nested values stay nested).</p>
 <ul><li>Sensitive outputs are omitted entirely, not masked; placeholder strings in</li></ul>
 <p>machine-readable output are an automation trap.</p>
 <ul><li>Pretty-printed, UTF-8, trailing newline.</li></ul>
-<h2>Workflow requirements (when deploying)</h2>
+<h2 id="workflow-requirements-when-deploying">Workflow requirements (when deploying)<a class="anchor" href="#workflow-requirements-when-deploying" aria-label="Copy link to this section">#</a></h2>
 <ul><li>Job permission <code>contents: write</code> (or a <code>github-token</code> that has it).</li><li>GitHub Pages source set to <strong>Deploy from a branch</strong> → your <code>pages-branch</code>.</li><li>A shared <code>concurrency</code> group if multiple workflows may deploy at once.</li></ul>
-<h2>CLI reference</h2>
+<h2 id="cli-reference">CLI reference<a class="anchor" href="#cli-reference" aria-label="Copy link to this section">#</a></h2>
 <pre><code>usage: garnish [-h] [--input INPUT] [--workspace NAME=PATH] [--merge]
                [--output-dir OUTPUT_DIR] [--title TITLE] [--version]
 
@@ -127,5 +130,16 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 </article>
 </main>
 <footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
+<script>
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('a.anchor');
+  if (!a) { return; }
+  var url = location.href.split('#')[0] + a.getAttribute('href');
+  history.replaceState(null, '', a.getAttribute('href'));
+  if (navigator.clipboard) { navigator.clipboard.writeText(url); }
+  a.textContent = '\u2713';
+  setTimeout(function () { a.textContent = '#'; }, 1200);
+});
+</script>
 </body>
 </html>

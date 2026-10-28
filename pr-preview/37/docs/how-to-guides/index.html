@@ -66,6 +66,9 @@ article.doc code { background: color-mix(in srgb, var(--muted) 12%, transparent)
 article.doc pre code { background: none; padding: 0; }
 article.doc blockquote { border-left: 3px solid var(--border); margin-left: 0; padding-left: 1rem; color: var(--muted); }
 article.doc table { border-collapse: collapse; }
+article.doc a.anchor { margin-left: 0.4rem; color: var(--muted); text-decoration: none; opacity: 0; font-weight: 400; }
+article.doc :is(h1, h2, h3, h4, h5, h6):hover a.anchor, article.doc a.anchor:focus { opacity: 1; }
+article.doc :is(h1, h2, h3, h4, h5, h6) { scroll-margin-top: 1rem; }
 article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25rem 0.6rem; text-align: left; }
 </style>
 </head>
@@ -75,9 +78,9 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 </header>
 <main>
 <article class="doc">
-<p><a href="https://github.com/lowlydba/tofu-garnish/blob/HEAD/README.md">← Back to README</a> · <a href="../tutorial/">Tutorial</a> · <a href="../reference/">Reference</a> · <a href="../explanation/">Explanation</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
-<h1>How-to guides</h1>
-<h2>Publish multiple workspaces, accounts, or tenants</h2>
+<p><a href="../tutorial/">Tutorial</a> · <a href="../reference/">Reference</a> · <a href="../explanation/">Explanation</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
+<h1 id="how-to-guides">How-to guides<a class="anchor" href="#how-to-guides" aria-label="Copy link to this section">#</a></h1>
+<h2 id="publish-multiple-workspaces-accounts-or-tenants">Publish multiple workspaces, accounts, or tenants<a class="anchor" href="#publish-multiple-workspaces-accounts-or-tenants" aria-label="Copy link to this section">#</a></h2>
 <p>Use the <code>workspaces</code> input, one <code>name=path</code> pair per line. Each workspace gets its own page under <code>/&lt;name&gt;/</code>, plus a landing page linking them all. The landing page lists workspaces most recently updated first, each with a relative age ("updated 3 days ago"):</p>
 <pre><code>      - uses: lowlydba/tofu-garnish@v1
         with:
@@ -86,7 +89,7 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
             prod-us=prod-us-outputs.json
             prod-eu=prod-eu-outputs.json
             staging=staging-outputs.json</code></pre>
-<h2>Update one workspace without touching the others</h2>
+<h2 id="update-one-workspace-without-touching-the-others">Update one workspace without touching the others<a class="anchor" href="#update-one-workspace-without-touching-the-others" aria-label="Copy link to this section">#</a></h2>
 <p>Different applies for different tenants usually run in different workflows, at different times. That's fine: in <code>workspaces</code> mode, each deploy only overwrites the workspaces it names and rebuilds the landing page; everything else already on the site is preserved. So the workflow that applies <code>prod-eu</code> just publishes <code>prod-eu</code>:</p>
 <pre><code>      - name: Get outputs
         uses: dflook/terraform-output@v2
@@ -104,14 +107,14 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 <pre><code>concurrency:
   group: tofu-garnish
   cancel-in-progress: false</code></pre>
-<h2>Show output descriptions on the page (OpenTofu only)</h2>
+<h2 id="show-output-descriptions-on-the-page-opentofu-only">Show output descriptions on the page (OpenTofu only)<a class="anchor" href="#show-output-descriptions-on-the-page-opentofu-only" aria-label="Copy link to this section">#</a></h2>
 <p>Tofu drops the <code>description</code> argument from <code>output -json</code>, but <code>tofu show -json -module=&lt;dir&gt;</code> can extract it straight from your module source with no init, state, or providers needed. Point <code>module-dir</code> at your root module and descriptions appear under each output name (and become filterable):</p>
 <pre><code>      - uses: lowlydba/tofu-garnish@v1
         with:
           outputs-file: outputs.json
           module-dir: my-terraform-config</code></pre>
 <blockquote><p>[!NOTE] Requires <code>tofu</code> ≥ 1.10 on the runner's PATH. Terraform's <code>show</code> command has no configuration mode; omit <code>module-dir</code> and the page simply renders without descriptions. YMMV.</p></blockquote>
-<h2>Use it without dflook actions</h2>
+<h2 id="use-it-without-dflook-actions">Use it without dflook actions<a class="anchor" href="#use-it-without-dflook-actions" aria-label="Copy link to this section">#</a></h2>
 <p>Pipe <code>tofu output -json</code> (or <code>terraform output -json</code>) to a file and point the action at it:</p>
 <pre><code>      - name: Export outputs
         run: tofu output -json &gt; outputs.json
@@ -121,17 +124,17 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
         with:
           outputs-file: outputs.json</code></pre>
 <p>Sensitive outputs are automatically masked on the page (see <a href="../explanation/#sensitive-values">Explanation</a>).</p>
-<h2>Pass outputs inline instead of a file</h2>
+<h2 id="pass-outputs-inline-instead-of-a-file">Pass outputs inline instead of a file<a class="anchor" href="#pass-outputs-inline-instead-of-a-file" aria-label="Copy link to this section">#</a></h2>
 <p>Any <code>dflook/terraform-output</code> step's outputs can be passed straight through as JSON; complex values arrive as JSON-encoded strings and are unpacked automatically:</p>
 <pre><code>      - uses: lowlydba/tofu-garnish@v1
         with:
           outputs: ${{ toJson(steps.tf-outputs.outputs) }}</code></pre>
-<h2>Consume outputs from scripts and other pipelines</h2>
+<h2 id="consume-outputs-from-scripts-and-other-pipelines">Consume outputs from scripts and other pipelines<a class="anchor" href="#consume-outputs-from-scripts-and-other-pipelines" aria-label="Copy link to this section">#</a></h2>
 <p>Every generated page has a machine-readable <code>outputs.json</code> next to it: a plain <code>{"name": value}</code> map with sensitive outputs omitted. That makes the Pages site a stable outputs endpoint, no repo clone or state access needed:</p>
 <pre><code>$ curl -s https://org.github.io/infra/prod-eu/outputs.json | jq -r .vpc_id
 vpc-01463b6b84e1454ce</code></pre>
 <p>Single-workspace sites serve it at the site root (<code>/outputs.json</code>). The shape is documented in <a href="../reference/#machine-readable-outputsjson">Reference</a>. Don't want it? Set the <code>outputs-json</code> input to <code>"false"</code>.</p>
-<h2>Generate the HTML without deploying</h2>
+<h2 id="generate-the-html-without-deploying">Generate the HTML without deploying<a class="anchor" href="#generate-the-html-without-deploying" aria-label="Copy link to this section">#</a></h2>
 <p>Set <code>deploy: "false"</code> and do whatever you like with the site directory: upload it elsewhere, attach it as an artifact, or serve it from another host.</p>
 <pre><code>      - uses: lowlydba/tofu-garnish@v1
         id: garnish
@@ -143,7 +146,7 @@ vpc-01463b6b84e1454ce</code></pre>
         with:
           name: outputs-page
           path: ${{ steps.garnish.outputs.site-dir }}</code></pre>
-<h2>Run the generator locally</h2>
+<h2 id="run-the-generator-locally">Run the generator locally<a class="anchor" href="#run-the-generator-locally" aria-label="Copy link to this section">#</a></h2>
 <p>The generator is a single stdlib-only Python script with no dependencies to install:</p>
 <pre><code>$ tofu output -json | python3 src/garnish.py --title &quot;My Stack&quot; --output-dir site
 garnish: wrote site/index.html (7 outputs)</code></pre>
@@ -155,5 +158,16 @@ $ tofu -chdir=examples/demo output -json | python3 src/garnish.py --output-dir s
 </article>
 </main>
 <footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
+<script>
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('a.anchor');
+  if (!a) { return; }
+  var url = location.href.split('#')[0] + a.getAttribute('href');
+  history.replaceState(null, '', a.getAttribute('href'));
+  if (navigator.clipboard) { navigator.clipboard.writeText(url); }
+  a.textContent = '\u2713';
+  setTimeout(function () { a.textContent = '#'; }, 1200);
+});
+</script>
 </body>
 </html>

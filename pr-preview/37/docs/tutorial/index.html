@@ -66,6 +66,9 @@ article.doc code { background: color-mix(in srgb, var(--muted) 12%, transparent)
 article.doc pre code { background: none; padding: 0; }
 article.doc blockquote { border-left: 3px solid var(--border); margin-left: 0; padding-left: 1rem; color: var(--muted); }
 article.doc table { border-collapse: collapse; }
+article.doc a.anchor { margin-left: 0.4rem; color: var(--muted); text-decoration: none; opacity: 0; font-weight: 400; }
+article.doc :is(h1, h2, h3, h4, h5, h6):hover a.anchor, article.doc a.anchor:focus { opacity: 1; }
+article.doc :is(h1, h2, h3, h4, h5, h6) { scroll-margin-top: 1rem; }
 article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25rem 0.6rem; text-align: left; }
 </style>
 </head>
@@ -75,10 +78,10 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 </header>
 <main>
 <article class="doc">
-<p><a href="https://github.com/lowlydba/tofu-garnish/blob/HEAD/README.md">← Back to README</a> · <a href="../how-to-guides/">How-to guides</a> · <a href="../reference/">Reference</a> · <a href="../explanation/">Explanation</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
-<h1>Tutorial</h1>
+<p><a href="../how-to-guides/">How-to guides</a> · <a href="../reference/">Reference</a> · <a href="../explanation/">Explanation</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
+<h1 id="tutorial">Tutorial<a class="anchor" href="#tutorial" aria-label="Copy link to this section">#</a></h1>
 <p><em>Publish your Tofu outputs to GitHub Pages in about five minutes.</em></p>
-<h2>1. Add a workflow</h2>
+<h2 id="add-a-workflow">1. Add a workflow<a class="anchor" href="#add-a-workflow" aria-label="Copy link to this section">#</a></h2>
 <p>Create <code>.github/workflows/publish-outputs.yml</code>:</p>
 <pre><code>name: Publish Tofu outputs
 
@@ -111,9 +114,9 @@ jobs:
           outputs-file: ${{ steps.tf-outputs.outputs.json_output_path }}
           title: My Stack Outputs</code></pre>
 <p>Push to <code>main</code> and let it run once. This creates the <code>gh-pages</code> branch.</p>
-<h2>2. Enable GitHub Pages for the branch</h2>
+<h2 id="enable-github-pages-for-the-branch">2. Enable GitHub Pages for the branch<a class="anchor" href="#enable-github-pages-for-the-branch" aria-label="Copy link to this section">#</a></h2>
 <p>In your repository: <strong>Settings → Pages → Build and deployment → Source → Deploy from a branch</strong>, then pick <code>gh-pages</code> / <code>/ (root)</code>.</p>
-<h2>3. Visit your page</h2>
+<h2 id="visit-your-page">3. Visit your page<a class="anchor" href="#visit-your-page" aria-label="Copy link to this section">#</a></h2>
 <p>Open the site URL shown in the Pages settings (also available as the <code>page-url</code> action output on later runs).</p>
 <p>Expected result:</p>
 <ul><li>Each output rendered as a card with a collapsible tree for maps and lists.</li><li>A copy button on every node (shown on hover); nested values copy as pretty JSON.</li><li>A filter box that matches names, keys, and values.</li><li>Sensitive outputs masked.</li><li>A meta line linking the commit and workflow run that produced the page.</li></ul>
@@ -121,5 +124,16 @@ jobs:
 </article>
 </main>
 <footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
+<script>
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('a.anchor');
+  if (!a) { return; }
+  var url = location.href.split('#')[0] + a.getAttribute('href');
+  history.replaceState(null, '', a.getAttribute('href'));
+  if (navigator.clipboard) { navigator.clipboard.writeText(url); }
+  a.textContent = '\u2713';
+  setTimeout(function () { a.textContent = '#'; }, 1200);
+});
+</script>
 </body>
 </html>
