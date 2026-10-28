@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="tofu-garnish 1.0.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌿</text></svg>">
+<title>Reference · tofu-garnish preview (PR 37)</title>
+<style>
+:root { color-scheme: light dark; --border: #d0d7de; --muted: #656d76; --accent: #1a7f37; }
+@media (prefers-color-scheme: dark) { :root { --border: #30363d; --muted: #8b949e; --accent: #3fb950; } }
+* { box-sizing: border-box; }
+body { font-family: system-ui, sans-serif; max-width: 60rem; margin: 0 auto; padding: 1rem 1.5rem 4rem; line-height: 1.5; }
+header h1 { margin-bottom: 0.25rem; }
+header p { color: var(--muted); margin-top: 0; }
+#filter { width: 100%; padding: 0.5rem 0.75rem; font-size: 1rem; border: 1px solid var(--border); border-radius: 6px; margin: 0.5rem 0 1rem; background: transparent; color: inherit; }
+section.output { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; margin: 0.75rem 0; overflow-x: auto; }
+section.output h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
+section.output h2 a { color: var(--accent); text-decoration: none; }
+section.output h2 a:hover { text-decoration: underline; }
+button.anchor { padding: 0; border: 0; font-size: 0.8em; opacity: 0.35; }
+button.anchor:hover, button.anchor:focus-visible { opacity: 1; }
+section.output h2 button.anchor { margin-right: 0.4rem; }
+.desc { color: var(--muted); font-size: 0.9rem; margin: -0.35rem 0 0.5rem; }
+ul.tree { list-style: none; margin: 0; padding: 0; }
+section.output > ul.tree { margin: 0 -0.5rem; }
+ul.tree ul.tree { padding-left: 1.25rem; }
+.row, summary { display: flex; align-items: baseline; gap: 0.5rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.9rem; }
+.row { padding-left: 1.5rem; }
+.row:hover, summary:hover { background: color-mix(in srgb, var(--muted) 10%, transparent); }
+summary { cursor: pointer; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "\25B8"; width: 1rem; margin-left: -0.5rem; padding-left: 0.5rem; color: var(--muted); flex: none; }
+details[open] > summary::before { content: "\25BE"; }
+.k { color: var(--muted); flex: none; }
+.row .k { min-width: 11rem; }
+.v { min-width: 0; }
+.hint { color: var(--muted); font-size: 0.8rem; opacity: 0.7; }
+.row button.copy, summary button.copy { margin-left: auto; opacity: 0; }
+.row:hover button.copy, summary:hover button.copy, button.copy:focus-visible { opacity: 1; }code { font-family: ui-monospace, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
+.scalar { display: inline-flex; align-items: baseline; gap: 0.5rem; max-width: 100%; }
+button.copy { font-size: 0.7rem; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; padding: 0.1rem 0.4rem; }
+button.copy:hover { color: inherit; }
+button.copy svg { display: block; }
+.empty, .null { color: var(--muted); font-style: italic; }
+.sensitive { color: var(--muted); }
+footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
+.back { margin: 0 0 0.25rem; font-size: 0.9rem; }
+.back a, .ws h2 a, a.src { color: var(--accent); text-decoration: none; }
+.back a:hover, .ws h2 a:hover, a.src:hover { text-decoration: underline; }
+section.ws p { color: var(--muted); margin: 0; }
+.no-match { color: var(--muted); font-style: italic; display: none; }
+nav.docs { margin: 0.5rem 0 1rem; font-size: 0.9rem; }
+nav.docs a { color: var(--accent); text-decoration: none; margin-right: 1rem; }
+nav.docs a:hover { text-decoration: underline; }
+article.doc a { color: var(--accent); }
+article.doc pre { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; overflow-x: auto; }
+article.doc code { background: color-mix(in srgb, var(--muted) 12%, transparent); padding: 0.1rem 0.25rem; border-radius: 4px; }
+article.doc pre code { background: none; padding: 0; }
+article.doc blockquote { border-left: 3px solid var(--border); margin-left: 0; padding-left: 1rem; color: var(--muted); }
+article.doc table { border-collapse: collapse; }
+article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25rem 0.6rem; text-align: left; }
+</style>
+</head>
+<body>
+<header>
+<p class="back"><a href="../../">← tofu-garnish preview (PR 37)</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a></p>
+</header>
+<main>
+<article class="doc">
+<p><a href="../readme/">← Back to README</a> · <a href="../tutorial/">Tutorial</a> · <a href="../how-to-guides/">How-to guides</a> · <a href="../explanation/">Explanation</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
+<h1>Reference</h1>
+<h2>Action inputs</h2>
+<table><thead><tr><th>Input</th><th>Required</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>outputs-file</code></td><td>no*</td><td>none</td><td>Path to a JSON outputs file: the <code>json_output_path</code> file from <code>dflook/terraform-output</code>, or the output of <code>tofu output -json</code>.</td></tr><tr><td><code>outputs</code></td><td>no*</td><td>none</td><td>Inline JSON string of outputs, e.g. <code>toJson(steps.&lt;id&gt;.outputs)</code> from a <code>dflook/terraform-output</code> step. Ignored if <code>outputs-file</code> is set.</td></tr><tr><td><code>workspaces</code></td><td>no*</td><td>none</td><td>Multiline <code>name=path</code> pairs for multi-workspace sites. Only the named workspaces are overwritten on deploy. Takes precedence over other inputs.</td></tr><tr><td><code>module-dir</code></td><td>no</td><td>none</td><td><strong>OpenTofu ≥ 1.10 only.</strong> Root module directory; descriptions are extracted with <code>tofu show -json -module</code> and rendered on the page.</td></tr><tr><td><code>docs-dir</code></td><td>no</td><td>none</td><td>Directory of Markdown files rendered to <code>/docs/&lt;name&gt;/</code> and linked from the landing and output pages. <code>other.md</code> links are rewritten. Kept across <code>workspaces</code> deploys when omitted.</td></tr><tr><td><code>site-path</code></td><td>no</td><td>branch root</td><td>Subdirectory of the Pages branch to publish under (e.g. <code>pr-preview/42</code>). Other files on the branch are untouched.</td></tr><tr><td><code>remove</code></td><td>no</td><td><code>"false"</code></td><td><code>"true"</code> deletes <code>site-path</code> from the Pages branch instead of publishing (e.g. when a PR closes). Requires <code>site-path</code>.</td></tr><tr><td><code>title</code></td><td>no</td><td><code>Tofu Outputs</code></td><td>Title shown on the generated page(s).</td></tr><tr><td><code>source-repo-url</code></td><td>no</td><td>current repository</td><td>URL of the repo the outputs come from, rendered as a "source repository" link on each page. Set to <code>""</code> to omit the link.</td></tr><tr><td><code>site-url</code></td><td>no</td><td>none</td><td>Public base URL when the site is served from a vanity domain (e.g. <code>https://labs.example.org/my-repo</code>). Adds "copy link" buttons that copy URLs under it instead of the browser's address.</td></tr><tr><td><code>footer</code></td><td>no</td><td><code>"true"</code></td><td>Render the "Served with 💚 by 🌿 tofu-garnish" footer (links to this repo) on generated pages. Set <code>"false"</code> to omit it.</td></tr><tr><td><code>outputs-json</code></td><td>no</td><td><code>"true"</code></td><td>Write a machine-readable <code>outputs.json</code> next to each generated page (sensitive outputs omitted). Set <code>"false"</code> to publish HTML only.</td></tr><tr><td><code>output-dir</code></td><td>no</td><td><code>tofu-garnish-site</code></td><td>Where the site is written when <code>deploy</code> is <code>"false"</code>.</td></tr><tr><td><code>deploy</code></td><td>no</td><td><code>"true"</code></td><td>Commit the site to the Pages branch. Set <code>"false"</code> to only generate HTML.</td></tr><tr><td><code>pages-branch</code></td><td>no</td><td><code>gh-pages</code></td><td>Branch GitHub Pages serves from. Created automatically if missing.</td></tr><tr><td><code>github-token</code></td><td>no</td><td><code>github.token</code></td><td>Token used to read and push the Pages branch (needs <code>contents: write</code>).</td></tr></tbody></table>
+<p>\* Exactly one of <code>workspaces</code>, <code>outputs-file</code>, or <code>outputs</code> must be provided; the action fails if all are empty.</p>
+<h2>Action outputs</h2>
+<table><thead><tr><th>Output</th><th>Description</th></tr></thead><tbody><tr><td><code>page-url</code></td><td>URL of the GitHub Pages site (empty when <code>deploy</code> is <code>"false"</code>).</td></tr><tr><td><code>site-dir</code></td><td>Directory containing the generated <code>index.html</code>.</td></tr></tbody></table>
+<h2>Accepted input formats</h2>
+<p>Format detection is automatic:</p>
+<ol><li>**<code>tofu output -json</code> / <code>terraform output -json</code>**: each output wrapped</li></ol>
+<p>in <code>{"value": …, "type": …, "sensitive": …}</code>. Sensitive outputs are masked.</p>
+<ol><li><strong>Plain map</strong>: <code>{"name": value, …}</code>, as written by the</li></ol>
+<p><code>json_output_path</code> file from <code>dflook/terraform-output</code>.</p>
+<ol><li><strong>String map</strong>: <code>{"name": "value-or-JSON-string", …}</code>, as produced by</li></ol>
+<p><code>toJson(steps.&lt;id&gt;.outputs)</code>. Strings that look like JSON arrays/objects are decoded; primitive strings are left untouched.</p>
+<h2>Site structure (workspaces mode)</h2>
+<pre><code>gh-pages
+├── .nojekyll
+├── index.html        # landing page listing all workspaces
+├── manifest.json     # machine-readable workspace index (used for merging)
+├── prod-us/
+│   ├── index.html
+│   └── outputs.json  # machine-readable outputs for this workspace
+└── staging/
+    ├── index.html
+    └── outputs.json</code></pre>
+<p>Workspace names are slugged for directory safety (<code>Prod US</code> → <code>prod-us/</code>); two names that slug identically are rejected.</p>
+<h2>Machine-readable outputs.json</h2>
+<p>Written next to every <code>index.html</code>, in single and workspaces mode (disable with the <code>outputs-json</code> input or <code>--no-outputs-json</code>). The shape is a contract:</p>
+<ul><li>A single JSON object mapping output name → value, exactly as parsed from</li></ul>
+<p>the input (nested values stay nested).</p>
+<ul><li>Sensitive outputs are omitted entirely, not masked; placeholder strings in</li></ul>
+<p>machine-readable output are an automation trap.</p>
+<ul><li>Pretty-printed, UTF-8, trailing newline.</li></ul>
+<h2>Workflow requirements (when deploying)</h2>
+<ul><li>Job permission <code>contents: write</code> (or a <code>github-token</code> that has it).</li><li>GitHub Pages source set to <strong>Deploy from a branch</strong> → your <code>pages-branch</code>.</li><li>A shared <code>concurrency</code> group if multiple workflows may deploy at once.</li></ul>
+<h2>CLI reference</h2>
+<pre><code>usage: garnish [-h] [--input INPUT] [--workspace NAME=PATH] [--merge]
+               [--output-dir OUTPUT_DIR] [--title TITLE] [--version]
+
+--input       Path to a JSON outputs file, or &#x27;-&#x27; for stdin (default).
+--workspace   Named outputs file, repeatable; builds a multi-workspace site.
+--descriptions  JSON from OpenTofu&#x27;s &#x27;tofu show -json -module=DIR&#x27; (or a
+                plain {&quot;name&quot;: &quot;description&quot;} map); rendered under each
+                output. OpenTofu only.
+--merge       Preserve workspaces recorded in the output dir&#x27;s manifest.json.
+--output-dir  Directory to write the site into (default: site).
+--title       Page title (default: &#x27;Tofu Outputs&#x27;).</code></pre>
+<p>Exit codes: <code>0</code> success, <code>2</code> bad input (missing file, invalid JSON, non-object top level, bad workspace spec, or clashing workspace names).</p>
+</article>
+</main>
+<footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
+</body>
+</html>

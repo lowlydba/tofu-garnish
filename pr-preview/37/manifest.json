@@ -1,0 +1,41 @@
+{
+  "generator": "tofu-garnish",
+  "version": "1.0.0",
+  "title": "tofu-garnish preview (PR 37)",
+  "workspaces": {
+    "prod": {
+      "name": "prod",
+      "outputs": 7,
+      "updated": "2026-10-28 15:21 UTC",
+      "updated_at": "2026-10-28T15:21:30.821219+00:00"
+    },
+    "staging": {
+      "name": "staging",
+      "outputs": 3,
+      "updated": "2026-10-28 15:21 UTC",
+      "updated_at": "2026-10-28T15:21:30.821219+00:00"
+    }
+  },
+  "docs": [
+    {
+      "title": "Explanation",
+      "slug": "explanation"
+    },
+    {
+      "title": "How-to guides",
+      "slug": "how-to-guides"
+    },
+    {
+      "title": "Reference",
+      "slug": "reference"
+    },
+    {
+      "title": "Tutorial",
+      "slug": "tutorial"
+    },
+    {
+      "title": "Writing outputs.tf for a good garnish page",
+      "slug": "writing-outputs"
+    }
+  ]
+}
