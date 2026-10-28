@@ -53,6 +53,13 @@ section.ws p { color: var(--muted); margin: 0; }
 nav.docs { margin: 0.5rem 0 1rem; font-size: 0.9rem; }
 nav.docs a { color: var(--accent); text-decoration: none; margin-right: 1rem; }
 nav.docs a:hover { text-decoration: underline; }
+nav.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
+a.act { color: var(--accent); text-decoration: none; font-size: 0.85rem; padding: 0.2rem 0.7rem;
+  border: 1px solid var(--border); border-radius: 999px; }
+a.act:hover { border-color: var(--accent); }
+details.prov { color: var(--muted); font-size: 0.8rem; margin: 0.25rem 0 1rem; }
+details.prov summary { cursor: pointer; }
+details.prov p { margin: 0.25rem 0 0; }
 article.doc a { color: var(--accent); }
 article.doc pre { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; overflow-x: auto; }
 article.doc code { background: color-mix(in srgb, var(--muted) 12%, transparent); padding: 0.1rem 0.25rem; border-radius: 4px; }
@@ -64,11 +71,11 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 </head>
 <body>
 <header>
-<p class="back"><a href="../../">← tofu-garnish preview (PR 37)</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a></p>
+<p class="back"><a href="../../">← tofu-garnish preview (PR 37)</a> · <a class="src" href="../">All docs</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a></p>
 </header>
 <main>
 <article class="doc">
-<p><a href="../readme/">← Back to README</a> · <a href="../tutorial/">Tutorial</a> · <a href="../reference/">Reference</a> · <a href="../explanation/">Explanation</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
+<p><a href="https://github.com/lowlydba/tofu-garnish/blob/HEAD/README.md">← Back to README</a> · <a href="../tutorial/">Tutorial</a> · <a href="../reference/">Reference</a> · <a href="../explanation/">Explanation</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
 <h1>How-to guides</h1>
 <h2>Publish multiple workspaces, accounts, or tenants</h2>
 <p>Use the <code>workspaces</code> input, one <code>name=path</code> pair per line. Each workspace gets its own page under <code>/&lt;name&gt;/</code>, plus a landing page linking them all. The landing page lists workspaces most recently updated first, each with a relative age ("updated 3 days ago"):</p>
