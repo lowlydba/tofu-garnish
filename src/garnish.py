@@ -23,7 +23,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 __version__ = "1.0.0"
 
@@ -548,7 +548,7 @@ _ANY_SCHEME = re.compile(r"^[a-z][a-z0-9+.-]*:", re.I)
 _MD_LINK = re.compile(r"\[([^\]]+)\]\(([^)\s]+)\)")
 _MD_SEPARATOR = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$")
 _MD_LIST_ITEM = re.compile(r"^\s*([-*+]|\d+\.)\s+(.*)")
-_MD_MARKUP = re.compile(r"(?m)^\s*(#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s?)|[*_`]|\[([^\]]*)\]\([^)]*\)")
+_MD_MARKUP = re.compile(r"(?m)^\s*(#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s?)|[*`]|\[([^\]]*)\]\([^)]*\)")
 
 
 def _md_href(href: str, resolve=None) -> str:
@@ -568,7 +568,7 @@ def _md_href(href: str, resolve=None) -> str:
         resolved = resolve(path)
         return (resolved if resolved is not None else path) + hash_ + frag
     if path.lower().endswith(".md"):
-        path = f"../{slugify(Path(path).stem)}/"
+        path = f"../{slugify(Path(unquote(path)).stem)}/"
     return path + hash_ + frag
 
 
@@ -790,8 +790,9 @@ def _build_docs(docs_dir: str, out_dir: Path, args: argparse.Namespace) -> list[
 
         def resolve(link: str) -> str | None:
             target = posixpath.normpath(posixpath.join(base, link))
-            if target in known:
-                return f"{up}../{known[target]}/"
+            decoded = posixpath.normpath(posixpath.join(base, unquote(link)))
+            if decoded in known:
+                return f"{up}../{known[decoded]}/"
             if args.source_url and not target.startswith(".."):
                 return f"{args.source_url.rstrip('/')}/blob/HEAD/{target}"
             return None
@@ -838,7 +839,7 @@ def _strip_back_link(text: str, base: str, known: dict[str, str]) -> str:
     match = _BACK_LINK.match(text)
     if not match:
         return text
-    if posixpath.normpath(posixpath.join(base, match.group(1))) in known:
+    if posixpath.normpath(posixpath.join(base, unquote(match.group(1)))) in known:
         return text
     return text[match.end() :]
 

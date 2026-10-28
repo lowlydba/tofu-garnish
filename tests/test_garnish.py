@@ -1252,6 +1252,29 @@ def test_heading_ids_are_unique_and_github_style():
     assert 'id="section"' in html
 
 
+def test_heading_ids_and_titles_keep_underscores():
+    html = garnish.render_markdown("## Lookup `vpc_id`\n")
+    assert 'id="lookup-vpc_id"' in html
+    assert garnish.doc_title("# Use `vpc_id`\n", "fb") == "Use vpc_id"
+
+
+def test_docs_links_decode_percent_encoded_paths(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "AWS Setup.md").write_text("# AWS\n", encoding="utf-8")
+    (docs / "top.md").write_text("[a](AWS%20Setup.md) [r](My%20File.txt)\n", encoding="utf-8")
+    outputs = tmp_path / "o.json"
+    outputs.write_text('{"a": "1"}', encoding="utf-8")
+    argv = ["--output-dir", "site", "--docs-dir", "docs", "--input", str(outputs)]
+    argv += ["--source-url", "https://github.com/o/r"]
+    assert garnish.main(argv) == 0
+    top = (tmp_path / "site" / "docs" / "top" / "index.html").read_text(encoding="utf-8")
+    assert 'href="../aws-setup/"' in top
+    assert "/blob/HEAD/docs/My%20File.txt" in top
+    assert garnish._md_href("AWS%20Setup.md") == "../aws-setup/"
+
+
 def test_doc_title():
     assert garnish.doc_title("intro\n# My [link](x) `code`\n", "fb") == "My link code"
     assert garnish.doc_title("no heading", "fb") == "fb"
