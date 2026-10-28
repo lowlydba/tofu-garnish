@@ -6,14 +6,14 @@
     "prod": {
       "name": "prod",
       "outputs": 7,
-      "updated": "2026-10-28 16:03 UTC",
-      "updated_at": "2026-10-28T16:03:52.556336+00:00"
+      "updated": "2026-10-28 16:12 UTC",
+      "updated_at": "2026-10-28T16:12:22.954082+00:00"
     },
     "staging": {
       "name": "staging",
       "outputs": 3,
-      "updated": "2026-10-28 16:03 UTC",
-      "updated_at": "2026-10-28T16:03:52.556336+00:00"
+      "updated": "2026-10-28 16:12 UTC",
+      "updated_at": "2026-10-28T16:12:22.954082+00:00"
     }
   },
   "docs": [
