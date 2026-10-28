@@ -1148,18 +1148,21 @@ def test_docs_dir_builds_pages_and_links(tmp_path, monkeypatch):
     docs = tmp_path / "docs"
     docs.mkdir()
     (docs / "aws.md").write_text(
-        "[← Back to README](../README.md) [peer](other.md#x) [pic](img/a.svg)\n", encoding="utf-8"
+        "[← Back to README](../README.md) · [peer](other.md#x) [pic](img/a.svg)\n",
+        encoding="utf-8",
     )
-    (docs / "other.md").write_text("# Other\n", encoding="utf-8")
+    (docs / "other.md").write_text("[← Back](aws.md) text\n", encoding="utf-8")
     outputs = tmp_path / "o.json"
     outputs.write_text('{"a": "1"}', encoding="utf-8")
     site = tmp_path / "site"
     argv = ["--output-dir", str(site), "--docs-dir", "docs", "--source-url", "https://gh.io/o/r"]
     assert garnish.main([*argv, "--workspace", f"prod={outputs}"]) == 0
     page = (site / "docs" / "aws" / "index.html").read_text(encoding="utf-8")
-    assert 'href="https://gh.io/o/r/blob/HEAD/README.md"' in page
+    assert "Back to README" not in page
     assert 'href="../other/#x"' in page
     assert 'href="https://gh.io/o/r/blob/HEAD/docs/img/a.svg"' in page
+    other = (site / "docs" / "other" / "index.html").read_text(encoding="utf-8")
+    assert 'href="../aws/"' in other
     index = (site / "docs" / "index.html").read_text(encoding="utf-8")
     assert 'href="aws/"' in index
     assert 'href="other/"' in index
@@ -1176,7 +1179,7 @@ def test_docs_links_without_source_url_stay_as_written(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs" / "a.md").write_text(
-        "[r](../README.md) [up](../../x.md)\n", encoding="utf-8"
+        "[← up](../README.md) [r](../README.md) [up](../../x.md)\n", encoding="utf-8"
     )
     outputs = tmp_path / "o.json"
     outputs.write_text('{"a": "1"}', encoding="utf-8")
@@ -1211,7 +1214,7 @@ def test_render_markdown_blocks():
         "---\n\n"
         "| h1 | h2 |\n| -- | -- |\n| c1 | c2 |\n"
     )
-    assert "<h1>Title</h1>" in html
+    assert '<h1 id="title">Title<a class="anchor" href="#title"' in html
     assert "<strong>bold</strong>" in html
     assert "<em>em</em>" in html
     assert "<code>a&lt;b</code>" in html
@@ -1221,6 +1224,13 @@ def test_render_markdown_blocks():
     assert "<hr>" in html
     assert "<th>h1</th>" in html
     assert "<td>c2</td>" in html
+
+
+def test_heading_ids_are_unique_and_github_style():
+    html = garnish.render_markdown("## Set `up` it!\n\n## Set up it\n\n## !!!\n")
+    assert 'id="set-up-it"' in html
+    assert 'id="set-up-it-1"' in html
+    assert 'id="section"' in html
 
 
 def test_doc_title():

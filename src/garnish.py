@@ -384,6 +384,9 @@ article.doc code { background: color-mix(in srgb, var(--muted) 12%, transparent)
 article.doc pre code { background: none; padding: 0; }
 article.doc blockquote { border-left: 3px solid var(--border); margin-left: 0; padding-left: 1rem; color: var(--muted); }
 article.doc table { border-collapse: collapse; }
+article.doc a.anchor { margin-left: 0.4rem; color: var(--muted); text-decoration: none; opacity: 0; font-weight: 400; }
+article.doc :is(h1, h2, h3, h4, h5, h6):hover a.anchor, article.doc a.anchor:focus { opacity: 1; }
+article.doc :is(h1, h2, h3, h4, h5, h6) { scroll-margin-top: 1rem; }
 article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25rem 0.6rem; text-align: left; }
 """
 
@@ -588,6 +591,31 @@ def _md_cells(line: str) -> list[str]:
     return [cell.strip() for cell in line.strip().strip("|").split("|")]
 
 
+def _heading_id(text: str, used: set[str]) -> str:
+    """GitHub-style heading slug, suffixed with -1, -2, ... when repeated."""
+    plain = _MD_MARKUP.sub(lambda mm: mm[2] or "", text).lower()
+    base = re.sub(r"[^\w\- ]", "", plain).strip().replace(" ", "-") or "section"
+    slug, n = base, 0
+    while slug in used:
+        n += 1
+        slug = f"{base}-{n}"
+    used.add(slug)
+    return slug
+
+
+_DOC_JS = """\
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('a.anchor');
+  if (!a) { return; }
+  var url = location.href.split('#')[0] + a.getAttribute('href');
+  history.replaceState(null, '', a.getAttribute('href'));
+  if (navigator.clipboard) { navigator.clipboard.writeText(url); }
+  a.textContent = '\\u2713';
+  setTimeout(function () { a.textContent = '#'; }, 1200);
+});
+"""
+
+
 def render_markdown(text: str, resolve=None) -> str:
     """Render a practical Markdown subset to HTML.
 
@@ -597,6 +625,7 @@ def render_markdown(text: str, resolve=None) -> str:
     lines = text.replace("\r\n", "\n").split("\n")
     out: list[str] = []
     para: list[str] = []
+    used_ids: set[str] = set()
 
     def inline(value: str) -> str:
         return _md_inline(value, resolve)
@@ -623,7 +652,12 @@ def render_markdown(text: str, resolve=None) -> str:
         elif m := re.match(r"^(#{1,6})\s+(.*?)\s*#*\s*$", stripped):
             flush()
             level = len(m[1])
-            out.append(f"<h{level}>{inline(m[2])}</h{level}>")
+            slug = _heading_id(m[2], used_ids)
+            out.append(
+                f'<h{level} id="{slug}">{inline(m[2])}'
+                f'<a class="anchor" href="#{slug}" aria-label="Copy link to this section">#</a>'
+                f"</h{level}>"
+            )
         elif re.match(r"^([-*_])(\s*\1){2,}$", stripped):
             flush()
             out.append("<hr>")
@@ -691,6 +725,7 @@ def render_doc(
         header,
         f'<article class="doc">\n{render_markdown(text, resolve)}</article>\n',
         footer=footer,
+        script=_DOC_JS,
     )
 
 
@@ -749,6 +784,7 @@ def _build_docs(docs_dir: str, out_dir: Path, args: argparse.Namespace) -> list[
 
     docs_out = out_dir / DOCS_DIR
     for slug, (_, text, repo_path) in pages.items():
+        text = _strip_back_link(text, posixpath.dirname(repo_path), known)
         page_dir = docs_out / slug
         page_dir.mkdir(parents=True, exist_ok=True)
         (page_dir / "index.html").write_text(
@@ -771,6 +807,23 @@ def _build_docs(docs_dir: str, out_dir: Path, args: argparse.Namespace) -> list[
         render_docs_index(docs, args.title, args.source_url, not args.no_footer), encoding="utf-8"
     )
     return docs
+
+
+_BACK_LINK = re.compile(r"\A\[←[^\]]*\]\(([^)\s]+)\)(?:[ \t]*·[ \t]*)?")
+
+
+def _strip_back_link(text: str, base: str, known: dict[str, str]) -> str:
+    """Drop a leading ``[← Back ...](target)`` link whose target is not a docs page.
+
+    Such links serve repo browsing (for example back to the root README); the
+    rendered page already links back to the docs index.
+    """
+    match = _BACK_LINK.match(text)
+    if not match:
+        return text
+    if posixpath.normpath(posixpath.join(base, match.group(1))) in known:
+        return text
+    return text[match.end() :]
 
 
 def _repo_path(path: Path) -> str:
