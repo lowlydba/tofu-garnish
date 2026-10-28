@@ -299,7 +299,9 @@ def remove(api=None, sleep=None) -> int:
     branch = os.environ["PAGES_BRANCH"]
     prefix = _site_prefix()
     if not prefix:
-        print("::error::remove requires 'site-path' (refusing to wipe the site root)", file=sys.stderr)
+        print(
+            "::error::remove requires 'site-path' (refusing to wipe the site root)", file=sys.stderr
+        )
         return 1
 
     def build(tip):

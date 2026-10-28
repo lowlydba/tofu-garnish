@@ -49,7 +49,7 @@ jobs:
 
       - name: Garnish outputs
         id: garnish
-        uses: ./
+        uses: $/
         with:
           workspaces: |
             prod=demo-outputs.json
@@ -64,11 +64,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PAGE_URL: ${{ steps.garnish.outputs.page-url }}
           PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           [ -n "$PAGE_URL" ] || exit 0
+          body=$(cat <<EOF
+          ### 🌿 Preview is live
+
+          | | |
+          | --- | --- |
+          | **Landing page** | [Open preview]($PAGE_URL) |
+          | **Docs** | [Browse docs](${PAGE_URL}docs/) |
+          | **Commit** | \`${SHA:0:7}\` |
+
+          <sub>Rebuilt on every push · removed when this PR closes</sub>
+          EOF
+          )
           gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none \
-            --body "Preview: $PAGE_URL (updates on each push; removed when the PR closes)"
+            --body "$body"
 
   cleanup:
     name: Remove PR preview
@@ -83,7 +96,7 @@ jobs:
           persist-credentials: false
 
       - name: Remove preview
-        uses: ./
+        uses: $/
         with:
           remove: "true"
           site-path: pr-preview/${{ github.event.pull_request.number }}

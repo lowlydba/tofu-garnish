@@ -17,6 +17,7 @@ import argparse
 import html
 import json
 import os
+import posixpath
 import re
 import sys
 from dataclasses import dataclass, field
@@ -370,6 +371,13 @@ section.ws p { color: var(--muted); margin: 0; }
 nav.docs { margin: 0.5rem 0 1rem; font-size: 0.9rem; }
 nav.docs a { color: var(--accent); text-decoration: none; margin-right: 1rem; }
 nav.docs a:hover { text-decoration: underline; }
+nav.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
+a.act { color: var(--accent); text-decoration: none; font-size: 0.85rem; padding: 0.2rem 0.7rem;
+  border: 1px solid var(--border); border-radius: 999px; }
+a.act:hover { border-color: var(--accent); }
+details.prov { color: var(--muted); font-size: 0.8rem; margin: 0.25rem 0 1rem; }
+details.prov summary { cursor: pointer; }
+details.prov p { margin: 0.25rem 0 0; }
 article.doc a { color: var(--accent); }
 article.doc pre { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; overflow-x: auto; }
 article.doc code { background: color-mix(in srgb, var(--muted) 12%, transparent); padding: 0.1rem 0.25rem; border-radius: 4px; }
@@ -493,13 +501,13 @@ def _document(title: str, header: str, main: str, script: str = "", footer: bool
 
 
 def _docs_nav(docs: list[tuple[str, str]], prefix: str = "") -> str:
-    """Navigation row linking the docs pages; ``prefix`` is the path to the site root."""
+    """Single link to the docs index, which scales regardless of page count."""
     if not docs:
         return ""
-    links = "".join(
-        f'<a href="{_esc(prefix)}{DOCS_DIR}/{_esc(slug)}/">{_esc(title)}</a>' for title, slug in docs
+    return (
+        f'<nav class="docs" aria-label="Documentation"><a href="{_esc(prefix)}{DOCS_DIR}/">'
+        f"Docs ({len(docs)})</a></nav>\n"
     )
-    return f'<nav class="docs" aria-label="Documentation">{links}</nav>\n'
 
 
 def render_page(page: Page) -> str:
@@ -539,19 +547,26 @@ _MD_LIST_ITEM = re.compile(r"^\s*([-*+]|\d+\.)\s+(.*)")
 _MD_MARKUP = re.compile(r"(?m)^\s*(#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s?)|[*_`]|\[([^\]]*)\]\([^)]*\)")
 
 
-def _md_href(href: str) -> str:
-    """Sanitize a link target; relative ``*.md`` links point at sibling docs pages."""
+def _md_href(href: str, resolve=None) -> str:
+    """Sanitize a link target and point relative links at docs pages or the source repo.
+
+    ``resolve`` maps a relative path to a final href, or None to leave it as
+    written. Without it, ``*.md`` links point at sibling docs pages.
+    """
     if _ANY_SCHEME.match(href) and not _SAFE_SCHEME.match(href):
         return "#"
     if _ANY_SCHEME.match(href) or href.startswith(("#", "/")):
         return href
     path, hash_, frag = href.partition("#")
+    if resolve is not None:
+        resolved = resolve(path)
+        return (resolved if resolved is not None else path) + hash_ + frag
     if path.lower().endswith(".md"):
         path = f"../{slugify(Path(path).stem)}/"
     return path + hash_ + frag
 
 
-def _md_inline(text: str) -> str:
+def _md_inline(text: str, resolve=None) -> str:
     """Render inline Markdown: code, links, bold, italic. Input is escaped first."""
     parts = re.split(r"(`[^`]+`)", html.escape(text, quote=False))
     out = []
@@ -560,7 +575,8 @@ def _md_inline(text: str) -> str:
             out.append(f"<code>{part[1:-1]}</code>")
             continue
         part = _MD_LINK.sub(
-            lambda m: f'<a href="{html.escape(_md_href(html.unescape(m[2])))}">{m[1]}</a>', part
+            lambda m: f'<a href="{html.escape(_md_href(html.unescape(m[2]), resolve))}">{m[1]}</a>',
+            part,
         )
         part = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", part)
         part = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<em>\1</em>", part)
@@ -572,7 +588,7 @@ def _md_cells(line: str) -> list[str]:
     return [cell.strip() for cell in line.strip().strip("|").split("|")]
 
 
-def render_markdown(text: str) -> str:
+def render_markdown(text: str, resolve=None) -> str:
     """Render a practical Markdown subset to HTML.
 
     Supports headings, paragraphs, fenced code, flat lists, blockquotes,
@@ -582,9 +598,12 @@ def render_markdown(text: str) -> str:
     out: list[str] = []
     para: list[str] = []
 
+    def inline(value: str) -> str:
+        return _md_inline(value, resolve)
+
     def flush() -> None:
         if para:
-            out.append(f"<p>{_md_inline(' '.join(para))}</p>")
+            out.append(f"<p>{inline(' '.join(para))}</p>")
             para.clear()
 
     i = 0
@@ -604,7 +623,7 @@ def render_markdown(text: str) -> str:
         elif m := re.match(r"^(#{1,6})\s+(.*?)\s*#*\s*$", stripped):
             flush()
             level = len(m[1])
-            out.append(f"<h{level}>{_md_inline(m[2])}</h{level}>")
+            out.append(f"<h{level}>{inline(m[2])}</h{level}>")
         elif re.match(r"^([-*_])(\s*\1){2,}$", stripped):
             flush()
             out.append("<hr>")
@@ -613,7 +632,7 @@ def render_markdown(text: str) -> str:
             tag = "ol" if line.lstrip()[0].isdigit() else "ul"
             items = []
             while i < len(lines) and (item := _MD_LIST_ITEM.match(lines[i])):
-                items.append(f"<li>{_md_inline(item[2])}</li>")
+                items.append(f"<li>{inline(item[2])}</li>")
                 i += 1
             out.append(f"<{tag}>{''.join(items)}</{tag}>")
             continue
@@ -623,18 +642,20 @@ def render_markdown(text: str) -> str:
             while i < len(lines) and lines[i].strip().startswith(">"):
                 quote_lines.append(lines[i].strip().lstrip(">").strip())
                 i += 1
-            out.append(f"<blockquote><p>{_md_inline(' '.join(quote_lines))}</p></blockquote>")
+            out.append(f"<blockquote><p>{inline(' '.join(quote_lines))}</p></blockquote>")
             continue
         elif "|" in stripped and i + 1 < len(lines) and _MD_SEPARATOR.match(lines[i + 1]):
             flush()
-            head = "".join(f"<th>{_md_inline(c)}</th>" for c in _md_cells(stripped))
+            head = "".join(f"<th>{inline(c)}</th>" for c in _md_cells(stripped))
             rows = []
             i += 2
             while i < len(lines) and "|" in lines[i]:
-                cells = "".join(f"<td>{_md_inline(c)}</td>" for c in _md_cells(lines[i]))
+                cells = "".join(f"<td>{inline(c)}</td>" for c in _md_cells(lines[i]))
                 rows.append(f"<tr>{cells}</tr>")
                 i += 1
-            out.append(f"<table><thead><tr>{head}</tr></thead><tbody>{''.join(rows)}</tbody></table>")
+            out.append(
+                f"<table><thead><tr>{head}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
+            )
             continue
         else:
             para.append(stripped)
@@ -657,48 +678,104 @@ def render_doc(
     site_title: str,
     source_url: str = "",
     footer: bool = True,
+    resolve=None,
 ) -> str:
-    """Render a Markdown docs page with a link back to the site root."""
+    """Render a Markdown docs page with links back to the docs index and site root."""
     title = doc_title(text, fallback_title)
     header = (
-        '<p class="back"><a href="../../">← '
-        f"{_esc(site_title)}</a>{_source_link(source_url)}</p>\n"
+        f'<p class="back"><a href="../../">← {_esc(site_title)}</a>'
+        f' · <a class="src" href="../">All docs</a>{_source_link(source_url)}</p>\n'
     )
     return _document(
         f"{title} · {site_title}",
         header,
-        f'<article class="doc">\n{render_markdown(text)}</article>\n',
+        f'<article class="doc">\n{render_markdown(text, resolve)}</article>\n',
         footer=footer,
     )
+
+
+def render_docs_index(
+    docs: list[tuple[str, str]], site_title: str, source_url: str = "", footer: bool = True
+) -> str:
+    """Render the filterable index of every docs page."""
+    sections = "".join(
+        f'<section class="output ws" data-search="{_esc(title.lower())} {_esc(slug)}">'
+        f'<h2><a href="{_esc(slug)}/">{_esc(title)}</a></h2></section>'
+        for title, slug in docs
+    )
+    header = (
+        f'<p class="back"><a href="../">← {_esc(site_title)}</a></p>\n'
+        f"<h1>Docs</h1>\n<p>{_plural(len(docs), 'page')}{_source_link(source_url)}</p>\n"
+        '<input id="filter" type="search" placeholder="Filter docs…" aria-label="Filter docs">\n'
+    )
+    main = f'{sections}\n<p id="no-match" class="no-match">No docs match the filter.</p>\n'
+    return _document(f"Docs · {site_title}", header, main, script=_JS, footer=footer)
 
 
 def _build_docs(docs_dir: str, out_dir: Path, args: argparse.Namespace) -> list[tuple[str, str]]:
     """Render every ``*.md`` under ``docs_dir`` to ``<out>/docs/<slug>/index.html``.
 
-    Returns ``(title, slug)`` pairs sorted by title. ``README.md`` and
-    ``index.md`` sort first.
+    Also writes ``<out>/docs/index.html`` listing every page. Relative links
+    resolve to sibling docs pages; links to other repo files (such as the
+    root README) point at the source repository when ``--source-url`` is set.
+    Returns ``(title, slug)`` pairs; ``README.md`` and ``index.md`` sort first.
     """
     root = Path(docs_dir)
     if not root.is_dir():
         raise ValueError(f"docs directory not found: {docs_dir}")
-    pages: dict[str, tuple[str, str]] = {}
+    pages: dict[str, tuple[str, str, str]] = {}
     for path in sorted(root.rglob("*.md")):
         slug = slugify(path.stem)
         if slug in pages:
-            raise ValueError(f"docs page {path.name!r} clashes with another page (both map to {slug!r})")
+            raise ValueError(
+                f"docs page {path.name!r} clashes with another page (both map to {slug!r})"
+            )
         text = path.read_text(encoding="utf-8")
-        pages[slug] = (doc_title(text, path.stem), text)
-    for slug, (_, text) in pages.items():
-        page_dir = out_dir / DOCS_DIR / slug
+        pages[slug] = (doc_title(text, path.stem), text, _repo_path(path))
+    known = {repo_path: slug for slug, (_, _, repo_path) in pages.items()}
+
+    def resolver_for(repo_path: str):
+        base = posixpath.dirname(repo_path)
+
+        def resolve(link: str) -> str | None:
+            target = posixpath.normpath(posixpath.join(base, link))
+            if target in known:
+                return f"../{known[target]}/"
+            if args.source_url and not target.startswith(".."):
+                return f"{args.source_url.rstrip('/')}/blob/HEAD/{target}"
+            return None
+
+        return resolve
+
+    docs_out = out_dir / DOCS_DIR
+    for slug, (_, text, repo_path) in pages.items():
+        page_dir = docs_out / slug
         page_dir.mkdir(parents=True, exist_ok=True)
         (page_dir / "index.html").write_text(
-            render_doc(text, slug, args.title, args.source_url, not args.no_footer),
+            render_doc(
+                text,
+                slug,
+                args.title,
+                args.source_url,
+                not args.no_footer,
+                resolver_for(repo_path),
+            ),
             encoding="utf-8",
         )
         print(f"garnish: wrote {page_dir / 'index.html'}")
     first = ("readme", "index")
     ordered = sorted(pages.items(), key=lambda kv: (kv[0] not in first, kv[1][0].lower()))
-    return [(title, slug) for slug, (title, _) in ordered]
+    docs = [(title, slug) for slug, (title, _, _) in ordered]
+    docs_out.mkdir(parents=True, exist_ok=True)
+    (docs_out / "index.html").write_text(
+        render_docs_index(docs, args.title, args.source_url, not args.no_footer), encoding="utf-8"
+    )
+    return docs
+
+
+def _repo_path(path: Path) -> str:
+    """POSIX path of ``path`` relative to the working directory (the repo root in Actions)."""
+    return Path(os.path.relpath(path)).as_posix()
 
 
 # ---------------------------------------------------------------------------
@@ -738,6 +815,33 @@ document.querySelectorAll('time[datetime]').forEach(function (t) {
 """
 
 
+def _landing_actions(source_url: str, share_url: str, docs: list[tuple[str, str]]) -> str:
+    """Primary landing actions as one quiet row, keeping the subtitle to a single fact line."""
+    items = []
+    if docs:
+        items.append(f'<a class="act" href="{DOCS_DIR}/">Docs ({len(docs)})</a>')
+    if source_url:
+        items.append(f'<a class="act" href="{_esc(source_url)}">Source</a>')
+    if share_url:
+        items.append(_link_button(share_url, LINK_ICON, "copy anchor", CHECK_MARK))
+    if not items:
+        return ""
+    return f'<nav class="actions" aria-label="Site links">{"".join(items)}</nav>\n'
+
+
+def _provenance_details(provenance: Provenance | None) -> str:
+    """Commit and run links tucked behind a disclosure, since few visitors need them."""
+    if provenance is None:
+        return ""
+    links = (
+        f'<a class="src" href="{_esc(provenance.commit_url)}">'
+        f"commit {_esc(provenance.commit_sha[:7])}</a>"
+    )
+    if provenance.run_url:
+        links += f' · <a class="src" href="{_esc(provenance.run_url)}">workflow run</a>'
+    return f'<details class="prov"><summary>Build details</summary><p>{links}</p></details>\n'
+
+
 def render_landing(
     title: str,
     workspaces: list[tuple[str, str, int, str, str]],
@@ -769,11 +873,11 @@ def render_landing(
             f'<h2><a href="{_esc(slug)}/">{_esc(name)}</a></h2>'
             f"<p>{_plural(count, 'output')}{stamp}{json_link}</p></section>"
         )
+    actions = _landing_actions(source_url, share_url, docs or [])
     header = (
         f"<h1>{_esc(title)}</h1>\n"
-        f"<p>{_plural(len(workspaces), 'workspace')} · generated {_esc(generated_at)}"
-        f"{_provenance_html(provenance)}{_source_link(source_url)}{_share_fragment(share_url)}</p>\n"
-        f"{_docs_nav(docs or [])}"
+        f"<p>{_plural(len(workspaces), 'workspace')} · generated {_esc(generated_at)}</p>\n"
+        f"{actions}{_provenance_details(provenance)}"
     )
     return _document(
         title, header, "".join(sections) + "\n", script=_LANDING_JS + _COPY_JS, footer=footer

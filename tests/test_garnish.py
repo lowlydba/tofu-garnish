@@ -318,7 +318,7 @@ class TestPageChrome:
             "now",
             source_url="https://github.com/octo/infra",
         )
-        assert '<a class="src" href="https://github.com/octo/infra">source repository</a>' in html
+        assert '<a class="act" href="https://github.com/octo/infra">Source</a>' in html
 
     def test_provenance_renders_commit_and_run_links(self):
         html = render_page(
@@ -385,7 +385,7 @@ class TestPageChrome:
                 run_url="https://github.com/octo/infra/actions/runs/42",
             ),
         )
-        assert ">abcdef1</a>" in html
+        assert ">commit abcdef1</a>" in html
         assert "workflow run</a>" in html
 
     def test_footer_links_to_tofu_garnish_repo(self):
@@ -1135,30 +1135,102 @@ class TestOutputsJson:
 
 
 def test_render_markdown_escapes_html_and_sanitizes_links():
-    html = garnish.render_markdown("# T\n\n<script>x</script> [bad](javascript:alert(1)) [ok](aws.md#x)")
+    html = garnish.render_markdown(
+        "# T\n\n<script>x</script> [bad](javascript:alert(1)) [ok](aws.md#x)"
+    )
     assert "<script>" not in html
     assert 'href="#"' in html
     assert 'href="../aws/#x"' in html
 
 
-def test_docs_dir_builds_pages_and_links(tmp_path):
+def test_docs_dir_builds_pages_and_links(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     docs = tmp_path / "docs"
     docs.mkdir()
-    (docs / "aws.md").write_text("# AWS notes\n\n- one\n- two\n", encoding="utf-8")
+    (docs / "aws.md").write_text(
+        "[← Back to README](../README.md) [peer](other.md#x) [pic](img/a.svg)\n", encoding="utf-8"
+    )
+    (docs / "other.md").write_text("# Other\n", encoding="utf-8")
     outputs = tmp_path / "o.json"
     outputs.write_text('{"a": "1"}', encoding="utf-8")
     site = tmp_path / "site"
-    argv = ["--output-dir", str(site), "--docs-dir", str(docs)]
+    argv = ["--output-dir", str(site), "--docs-dir", "docs", "--source-url", "https://gh.io/o/r"]
     assert garnish.main([*argv, "--workspace", f"prod={outputs}"]) == 0
-    assert "<li>one</li>" in (site / "docs" / "aws" / "index.html").read_text(encoding="utf-8")
-    assert 'href="docs/aws/"' in (site / "index.html").read_text(encoding="utf-8")
-    assert 'href="../docs/aws/"' in (site / "prod" / "index.html").read_text(encoding="utf-8")
-    # A merge run without --docs-dir keeps the recorded docs links.
-    assert garnish.main(["--output-dir", str(site), "--merge", "--workspace", f"prod={outputs}"]) == 0
-    assert 'href="docs/aws/"' in (site / "index.html").read_text(encoding="utf-8")
+    page = (site / "docs" / "aws" / "index.html").read_text(encoding="utf-8")
+    assert 'href="https://gh.io/o/r/blob/HEAD/README.md"' in page
+    assert 'href="../other/#x"' in page
+    assert 'href="https://gh.io/o/r/blob/HEAD/docs/img/a.svg"' in page
+    index = (site / "docs" / "index.html").read_text(encoding="utf-8")
+    assert 'href="aws/"' in index
+    assert 'href="other/"' in index
+    assert "Docs (2)" in (site / "index.html").read_text(encoding="utf-8")
+    assert 'href="../docs/"' in (site / "prod" / "index.html").read_text(encoding="utf-8")
+    # A merge run without --docs-dir keeps the recorded docs link.
+    assert (
+        garnish.main(["--output-dir", str(site), "--merge", "--workspace", f"prod={outputs}"]) == 0
+    )
+    assert "Docs (2)" in (site / "index.html").read_text(encoding="utf-8")
+
+
+def test_docs_links_without_source_url_stay_as_written(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "a.md").write_text(
+        "[r](../README.md) [up](../../x.md)\n", encoding="utf-8"
+    )
+    outputs = tmp_path / "o.json"
+    outputs.write_text('{"a": "1"}', encoding="utf-8")
+    argv = ["--output-dir", "site", "--docs-dir", "docs", "--input", str(outputs)]
+    assert garnish.main(argv) == 0
+    page = (tmp_path / "site" / "docs" / "a" / "index.html").read_text(encoding="utf-8")
+    assert 'href="../README.md"' in page
+    assert 'href="../../x.md"' in page
+
+
+def test_docs_dir_missing_and_clashing(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    outputs = tmp_path / "o.json"
+    outputs.write_text('{"a": "1"}', encoding="utf-8")
+    base = ["--output-dir", "site", "--input", str(outputs)]
+    assert garnish.main([*base, "--docs-dir", "nope"]) == 2
+    assert garnish.main([*base, "--docs-dir", "nope", "--workspace", f"p={outputs}"]) == 2
+    (tmp_path / "docs" / "a").mkdir(parents=True)
+    (tmp_path / "docs" / "x.md").write_text("one", encoding="utf-8")
+    (tmp_path / "docs" / "a" / "x.md").write_text("two", encoding="utf-8")
+    assert garnish.main([*base, "--docs-dir", "docs"]) == 2
+    assert "clashes" in capsys.readouterr().err
+
+
+def test_render_markdown_blocks():
+    html = garnish.render_markdown(
+        "# Title\n\n"
+        "para **bold** *em* `a<b`\n\n"
+        "```\n<raw>\n```\n\n"
+        "1. one\n2. two\n\n"
+        "> quoted\n> more\n\n"
+        "---\n\n"
+        "| h1 | h2 |\n| -- | -- |\n| c1 | c2 |\n"
+    )
+    assert "<h1>Title</h1>" in html
+    assert "<strong>bold</strong>" in html
+    assert "<em>em</em>" in html
+    assert "<code>a&lt;b</code>" in html
+    assert "<pre><code>&lt;raw&gt;</code></pre>" in html
+    assert "<ol><li>one</li><li>two</li></ol>" in html
+    assert "<blockquote><p>quoted more</p></blockquote>" in html
+    assert "<hr>" in html
+    assert "<th>h1</th>" in html
+    assert "<td>c2</td>" in html
+
+
+def test_doc_title():
+    assert garnish.doc_title("intro\n# My [link](x) `code`\n", "fb") == "My link code"
+    assert garnish.doc_title("no heading", "fb") == "fb"
 
 
 def test_docs_workspace_name_reserved(tmp_path):
     outputs = tmp_path / "o.json"
     outputs.write_text('{"a": "1"}', encoding="utf-8")
-    assert garnish.main(["--output-dir", str(tmp_path / "s"), "--workspace", f"docs={outputs}"]) == 2
+    assert (
+        garnish.main(["--output-dir", str(tmp_path / "s"), "--workspace", f"docs={outputs}"]) == 2
+    )
