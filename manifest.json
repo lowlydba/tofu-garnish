@@ -6,14 +6,36 @@
     "prod": {
       "name": "prod",
       "outputs": 7,
-      "updated": "2026-10-14 18:52 UTC",
-      "updated_at": "2026-10-14T18:52:28.078848+00:00"
+      "updated": "2026-10-28 16:39 UTC",
+      "updated_at": "2026-10-28T16:39:32.051068+00:00"
     },
     "staging": {
       "name": "staging",
       "outputs": 3,
-      "updated": "2026-10-14 18:52 UTC",
-      "updated_at": "2026-10-14T18:52:28.078848+00:00"
+      "updated": "2026-10-28 16:39 UTC",
+      "updated_at": "2026-10-28T16:39:32.051068+00:00"
     }
-  }
+  },
+  "docs": [
+    {
+      "title": "Explanation",
+      "slug": "explanation"
+    },
+    {
+      "title": "How-to guides",
+      "slug": "how-to-guides"
+    },
+    {
+      "title": "Reference",
+      "slug": "reference"
+    },
+    {
+      "title": "Tutorial",
+      "slug": "tutorial"
+    },
+    {
+      "title": "Writing outputs.tf for a good garnish page",
+      "slug": "writing-outputs"
+    }
+  ]
 }

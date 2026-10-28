@@ -50,15 +50,37 @@ footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
 .back a:hover, .ws h2 a:hover, a.src:hover { text-decoration: underline; }
 section.ws p { color: var(--muted); margin: 0; }
 .no-match { color: var(--muted); font-style: italic; display: none; }
+nav.docs { margin: 0.5rem 0 1rem; font-size: 0.9rem; }
+nav.docs a { color: var(--accent); text-decoration: none; margin-right: 1rem; }
+nav.docs a:hover { text-decoration: underline; }
+nav.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
+a.act { color: var(--accent); text-decoration: none; font-size: 0.85rem; padding: 0.2rem 0.7rem;
+  border: 1px solid var(--border); border-radius: 999px; }
+a.act:hover { border-color: var(--accent); }
+details.prov { color: var(--muted); font-size: 0.8rem; margin: 0.25rem 0 1rem; }
+details.prov summary { cursor: pointer; }
+details.prov p { margin: 0.25rem 0 0; }
+article.doc a { color: var(--accent); }
+article.doc pre { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; overflow-x: auto; }
+article.doc code { background: color-mix(in srgb, var(--muted) 12%, transparent); padding: 0.1rem 0.25rem; border-radius: 4px; }
+article.doc pre code { background: none; padding: 0; }
+article.doc blockquote { border-left: 3px solid var(--border); margin-left: 0; padding-left: 1rem; color: var(--muted); }
+article.doc table { border-collapse: collapse; }
+article.doc a.anchor { margin-left: 0.4rem; color: var(--muted); text-decoration: none; opacity: 0; font-weight: 400; }
+article.doc :is(h1, h2, h3, h4, h5, h6):hover a.anchor, article.doc a.anchor:focus { opacity: 1; }
+article.doc :is(h1, h2, h3, h4, h5, h6) { scroll-margin-top: 1rem; }
+article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25rem 0.6rem; text-align: left; }
 </style>
 </head>
 <body>
 <header>
 <h1>tofu-garnish demo</h1>
-<p>2 workspaces · generated 2026-10-14 18:52 UTC · commit <a class="src" href="https://github.com/lowlydba/tofu-garnish/commit/99a7b205cb681c115066568ff2f53987953a170c">99a7b20</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish/actions/runs/38618836482">workflow run</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a></p>
+<p>2 workspaces · generated 2026-10-28 16:39 UTC</p>
+<nav class="actions" aria-label="Site links"><a class="act" href="docs/">Docs (5)</a><a class="act" href="https://github.com/lowlydba/tofu-garnish">Source</a></nav>
+<details class="prov"><summary>Build details</summary><p><a class="src" href="https://github.com/lowlydba/tofu-garnish/commit/2f6958f12cdce3b9c714d683ba9d78cbe13915e6">commit 2f6958f</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish/actions/runs/40728095594">workflow run</a></p></details>
 </header>
 <main>
-<section class="output ws" data-search="prod"><h2><a href="prod/">prod</a></h2><p>7 outputs · updated <time datetime="2026-10-14T18:52:28.078848+00:00">2026-10-14 18:52 UTC</time> · <a class="src" href="prod/outputs.json">JSON</a></p></section><section class="output ws" data-search="staging"><h2><a href="staging/">staging</a></h2><p>3 outputs · updated <time datetime="2026-10-14T18:52:28.078848+00:00">2026-10-14 18:52 UTC</time> · <a class="src" href="staging/outputs.json">JSON</a></p></section>
+<section class="output ws" data-search="prod"><h2><a href="prod/">prod</a></h2><p>7 outputs · updated <time datetime="2026-10-28T16:39:32.051068+00:00" title="2026-10-28 16:39 UTC">2026-10-28 16:39 UTC</time></p></section><section class="output ws" data-search="staging"><h2><a href="staging/">staging</a></h2><p>3 outputs · updated <time datetime="2026-10-28T16:39:32.051068+00:00" title="2026-10-28 16:39 UTC">2026-10-28 16:39 UTC</time></p></section>
 </main>
 <footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
 <script>

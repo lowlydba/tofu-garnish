@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="tofu-garnish 1.0.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌿</text></svg>">
+<title>How-to guides · tofu-garnish demo</title>
+<style>
+:root { color-scheme: light dark; --border: #d0d7de; --muted: #656d76; --accent: #1a7f37; }
+@media (prefers-color-scheme: dark) { :root { --border: #30363d; --muted: #8b949e; --accent: #3fb950; } }
+* { box-sizing: border-box; }
+body { font-family: system-ui, sans-serif; max-width: 60rem; margin: 0 auto; padding: 1rem 1.5rem 4rem; line-height: 1.5; }
+header h1 { margin-bottom: 0.25rem; }
+header p { color: var(--muted); margin-top: 0; }
+#filter { width: 100%; padding: 0.5rem 0.75rem; font-size: 1rem; border: 1px solid var(--border); border-radius: 6px; margin: 0.5rem 0 1rem; background: transparent; color: inherit; }
+section.output { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; margin: 0.75rem 0; overflow-x: auto; }
+section.output h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
+section.output h2 a { color: var(--accent); text-decoration: none; }
+section.output h2 a:hover { text-decoration: underline; }
+button.anchor { padding: 0; border: 0; font-size: 0.8em; opacity: 0.35; }
+button.anchor:hover, button.anchor:focus-visible { opacity: 1; }
+section.output h2 button.anchor { margin-right: 0.4rem; }
+.desc { color: var(--muted); font-size: 0.9rem; margin: -0.35rem 0 0.5rem; }
+ul.tree { list-style: none; margin: 0; padding: 0; }
+section.output > ul.tree { margin: 0 -0.5rem; }
+ul.tree ul.tree { padding-left: 1.25rem; }
+.row, summary { display: flex; align-items: baseline; gap: 0.5rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.9rem; }
+.row { padding-left: 1.5rem; }
+.row:hover, summary:hover { background: color-mix(in srgb, var(--muted) 10%, transparent); }
+summary { cursor: pointer; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "\25B8"; width: 1rem; margin-left: -0.5rem; padding-left: 0.5rem; color: var(--muted); flex: none; }
+details[open] > summary::before { content: "\25BE"; }
+.k { color: var(--muted); flex: none; }
+.row .k { min-width: 11rem; }
+.v { min-width: 0; }
+.hint { color: var(--muted); font-size: 0.8rem; opacity: 0.7; }
+.row button.copy, summary button.copy { margin-left: auto; opacity: 0; }
+.row:hover button.copy, summary:hover button.copy, button.copy:focus-visible { opacity: 1; }code { font-family: ui-monospace, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
+.scalar { display: inline-flex; align-items: baseline; gap: 0.5rem; max-width: 100%; }
+button.copy { font-size: 0.7rem; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; padding: 0.1rem 0.4rem; }
+button.copy:hover { color: inherit; }
+button.copy svg { display: block; }
+.empty, .null { color: var(--muted); font-style: italic; }
+.sensitive { color: var(--muted); }
+footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
+.back { margin: 0 0 0.25rem; font-size: 0.9rem; }
+.back a, .ws h2 a, a.src { color: var(--accent); text-decoration: none; }
+.back a:hover, .ws h2 a:hover, a.src:hover { text-decoration: underline; }
+section.ws p { color: var(--muted); margin: 0; }
+.no-match { color: var(--muted); font-style: italic; display: none; }
+nav.docs { margin: 0.5rem 0 1rem; font-size: 0.9rem; }
+nav.docs a { color: var(--accent); text-decoration: none; margin-right: 1rem; }
+nav.docs a:hover { text-decoration: underline; }
+nav.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
+a.act { color: var(--accent); text-decoration: none; font-size: 0.85rem; padding: 0.2rem 0.7rem;
+  border: 1px solid var(--border); border-radius: 999px; }
+a.act:hover { border-color: var(--accent); }
+details.prov { color: var(--muted); font-size: 0.8rem; margin: 0.25rem 0 1rem; }
+details.prov summary { cursor: pointer; }
+details.prov p { margin: 0.25rem 0 0; }
+article.doc a { color: var(--accent); }
+article.doc pre { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; overflow-x: auto; }
+article.doc code { background: color-mix(in srgb, var(--muted) 12%, transparent); padding: 0.1rem 0.25rem; border-radius: 4px; }
+article.doc pre code { background: none; padding: 0; }
+article.doc blockquote { border-left: 3px solid var(--border); margin-left: 0; padding-left: 1rem; color: var(--muted); }
+article.doc table { border-collapse: collapse; }
+article.doc a.anchor { margin-left: 0.4rem; color: var(--muted); text-decoration: none; opacity: 0; font-weight: 400; }
+article.doc :is(h1, h2, h3, h4, h5, h6):hover a.anchor, article.doc a.anchor:focus { opacity: 1; }
+article.doc :is(h1, h2, h3, h4, h5, h6) { scroll-margin-top: 1rem; }
+article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25rem 0.6rem; text-align: left; }
+</style>
+</head>
+<body>
+<header>
+<p class="back"><a href="../../">← tofu-garnish demo</a> · <a class="src" href="../">All docs</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a></p>
+</header>
+<main>
+<article class="doc">
+<p><a href="../tutorial/">Tutorial</a> · <a href="../reference/">Reference</a> · <a href="../explanation/">Explanation</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
+<h1 id="how-to-guides">How-to guides<a class="anchor" href="#how-to-guides" aria-label="Copy link to this section">#</a></h1>
+<h2 id="publish-multiple-workspaces-accounts-or-tenants">Publish multiple workspaces, accounts, or tenants<a class="anchor" href="#publish-multiple-workspaces-accounts-or-tenants" aria-label="Copy link to this section">#</a></h2>
+<p>Use the <code>workspaces</code> input, one <code>name=path</code> pair per line. Each workspace gets its own page under <code>/&lt;name&gt;/</code>, plus a landing page linking them all. The landing page lists workspaces most recently updated first, each with a relative age ("updated 3 days ago"):</p>
+<pre><code>      - uses: lowlydba/tofu-garnish@v1
+        with:
+          title: Platform Outputs
+          workspaces: |
+            prod-us=prod-us-outputs.json
+            prod-eu=prod-eu-outputs.json
+            staging=staging-outputs.json</code></pre>
+<h2 id="update-one-workspace-without-touching-the-others">Update one workspace without touching the others<a class="anchor" href="#update-one-workspace-without-touching-the-others" aria-label="Copy link to this section">#</a></h2>
+<p>Different applies for different tenants usually run in different workflows, at different times. That's fine: in <code>workspaces</code> mode, each deploy only overwrites the workspaces it names and rebuilds the landing page; everything else already on the site is preserved. So the workflow that applies <code>prod-eu</code> just publishes <code>prod-eu</code>:</p>
+<pre><code>      - name: Get outputs
+        uses: dflook/terraform-output@v2
+        id: tf-outputs
+        with:
+          path: infra
+          workspace: prod-eu
+
+      - uses: lowlydba/tofu-garnish@v1
+        with:
+          title: Platform Outputs
+          workspaces: |
+            prod-eu=${{ steps.tf-outputs.outputs.json_output_path }}</code></pre>
+<p>If several such workflows can run at the same moment, serialize the deploys with a shared concurrency group:</p>
+<pre><code>concurrency:
+  group: tofu-garnish
+  cancel-in-progress: false</code></pre>
+<h2 id="show-output-descriptions-on-the-page-opentofu-only">Show output descriptions on the page (OpenTofu only)<a class="anchor" href="#show-output-descriptions-on-the-page-opentofu-only" aria-label="Copy link to this section">#</a></h2>
+<p>Tofu drops the <code>description</code> argument from <code>output -json</code>, but <code>tofu show -json -module=&lt;dir&gt;</code> can extract it straight from your module source with no init, state, or providers needed. Point <code>module-dir</code> at your root module and descriptions appear under each output name (and become filterable):</p>
+<pre><code>      - uses: lowlydba/tofu-garnish@v1
+        with:
+          outputs-file: outputs.json
+          module-dir: my-terraform-config</code></pre>
+<blockquote><p>[!NOTE] Requires <code>tofu</code> ≥ 1.10 on the runner's PATH. Terraform's <code>show</code> command has no configuration mode; omit <code>module-dir</code> and the page simply renders without descriptions. YMMV.</p></blockquote>
+<h2 id="use-it-without-dflook-actions">Use it without dflook actions<a class="anchor" href="#use-it-without-dflook-actions" aria-label="Copy link to this section">#</a></h2>
+<p>Pipe <code>tofu output -json</code> (or <code>terraform output -json</code>) to a file and point the action at it:</p>
+<pre><code>      - name: Export outputs
+        run: tofu output -json &gt; outputs.json
+        working-directory: my-terraform-config
+
+      - uses: lowlydba/tofu-garnish@v1
+        with:
+          outputs-file: outputs.json</code></pre>
+<p>Sensitive outputs are automatically masked on the page (see <a href="../explanation/#how-are-sensitive-values-handled">Explanation</a>).</p>
+<h2 id="pass-outputs-inline-instead-of-a-file">Pass outputs inline instead of a file<a class="anchor" href="#pass-outputs-inline-instead-of-a-file" aria-label="Copy link to this section">#</a></h2>
+<p>Any <code>dflook/terraform-output</code> step's outputs can be passed straight through as JSON; complex values arrive as JSON-encoded strings and are unpacked automatically:</p>
+<pre><code>      - uses: lowlydba/tofu-garnish@v1
+        with:
+          outputs: ${{ toJson(steps.tf-outputs.outputs) }}</code></pre>
+<h2 id="consume-outputs-from-scripts-and-other-pipelines">Consume outputs from scripts and other pipelines<a class="anchor" href="#consume-outputs-from-scripts-and-other-pipelines" aria-label="Copy link to this section">#</a></h2>
+<p>Every generated page has a machine-readable <code>outputs.json</code> next to it: a plain <code>{"name": value}</code> map with sensitive outputs omitted. That makes the Pages site a stable outputs endpoint, no repo clone or state access needed:</p>
+<pre><code>$ curl -s https://org.github.io/infra/prod-eu/outputs.json | jq -r .vpc_id
+vpc-01463b6b84e1454ce</code></pre>
+<p>Single-workspace sites serve it at the site root (<code>/outputs.json</code>). The shape is documented in <a href="../reference/#machine-readable-outputsjson">Reference</a>. Don't want it? Set the <code>outputs-json</code> input to <code>"false"</code>.</p>
+<h2 id="generate-the-html-without-deploying">Generate the HTML without deploying<a class="anchor" href="#generate-the-html-without-deploying" aria-label="Copy link to this section">#</a></h2>
+<p>Set <code>deploy: "false"</code> and do whatever you like with the site directory: upload it elsewhere, attach it as an artifact, or serve it from another host.</p>
+<pre><code>      - uses: lowlydba/tofu-garnish@v1
+        id: garnish
+        with:
+          outputs-file: outputs.json
+          deploy: &quot;false&quot;
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: outputs-page
+          path: ${{ steps.garnish.outputs.site-dir }}</code></pre>
+<h2 id="run-the-generator-locally">Run the generator locally<a class="anchor" href="#run-the-generator-locally" aria-label="Copy link to this section">#</a></h2>
+<p>The generator is a single stdlib-only Python script with no dependencies to install:</p>
+<pre><code>$ tofu output -json | python3 src/garnish.py --title &quot;My Stack&quot; --output-dir site
+garnish: wrote site/index.html (7 outputs)</code></pre>
+<p>Multi-workspace sites work locally too, with <code>--workspace name=path</code> (repeatable) and <code>--merge</code> to preserve workspaces already in the output directory. Set <code>SOURCE_DATE_EPOCH</code> for a reproducible timestamp.</p>
+<p>No infrastructure handy? The repo ships provider-less example configs that produce realistic outputs:</p>
+<pre><code>$ tofu -chdir=examples/demo init &amp;&amp; tofu -chdir=examples/demo apply -auto-approve
+$ tofu -chdir=examples/demo output -json | python3 src/garnish.py --output-dir site</code></pre>
+<p>CI applies these with real OpenTofu and runs the action on the result, and the demo workflow publishes them to this repo's Pages.</p>
+</article>
+</main>
+<footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
+<script>
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('a.anchor');
+  if (!a) { return; }
+  var url = location.href.split('#')[0] + a.getAttribute('href');
+  history.replaceState(null, '', a.getAttribute('href'));
+  if (navigator.clipboard) { navigator.clipboard.writeText(url); }
+  a.textContent = '\u2713';
+  setTimeout(function () { a.textContent = '#'; }, 1200);
+});
+</script>
+</body>
+</html>

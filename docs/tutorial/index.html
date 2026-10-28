@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="tofu-garnish 1.0.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌿</text></svg>">
+<title>Tutorial · tofu-garnish demo</title>
+<style>
+:root { color-scheme: light dark; --border: #d0d7de; --muted: #656d76; --accent: #1a7f37; }
+@media (prefers-color-scheme: dark) { :root { --border: #30363d; --muted: #8b949e; --accent: #3fb950; } }
+* { box-sizing: border-box; }
+body { font-family: system-ui, sans-serif; max-width: 60rem; margin: 0 auto; padding: 1rem 1.5rem 4rem; line-height: 1.5; }
+header h1 { margin-bottom: 0.25rem; }
+header p { color: var(--muted); margin-top: 0; }
+#filter { width: 100%; padding: 0.5rem 0.75rem; font-size: 1rem; border: 1px solid var(--border); border-radius: 6px; margin: 0.5rem 0 1rem; background: transparent; color: inherit; }
+section.output { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; margin: 0.75rem 0; overflow-x: auto; }
+section.output h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
+section.output h2 a { color: var(--accent); text-decoration: none; }
+section.output h2 a:hover { text-decoration: underline; }
+button.anchor { padding: 0; border: 0; font-size: 0.8em; opacity: 0.35; }
+button.anchor:hover, button.anchor:focus-visible { opacity: 1; }
+section.output h2 button.anchor { margin-right: 0.4rem; }
+.desc { color: var(--muted); font-size: 0.9rem; margin: -0.35rem 0 0.5rem; }
+ul.tree { list-style: none; margin: 0; padding: 0; }
+section.output > ul.tree { margin: 0 -0.5rem; }
+ul.tree ul.tree { padding-left: 1.25rem; }
+.row, summary { display: flex; align-items: baseline; gap: 0.5rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.9rem; }
+.row { padding-left: 1.5rem; }
+.row:hover, summary:hover { background: color-mix(in srgb, var(--muted) 10%, transparent); }
+summary { cursor: pointer; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "\25B8"; width: 1rem; margin-left: -0.5rem; padding-left: 0.5rem; color: var(--muted); flex: none; }
+details[open] > summary::before { content: "\25BE"; }
+.k { color: var(--muted); flex: none; }
+.row .k { min-width: 11rem; }
+.v { min-width: 0; }
+.hint { color: var(--muted); font-size: 0.8rem; opacity: 0.7; }
+.row button.copy, summary button.copy { margin-left: auto; opacity: 0; }
+.row:hover button.copy, summary:hover button.copy, button.copy:focus-visible { opacity: 1; }code { font-family: ui-monospace, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
+.scalar { display: inline-flex; align-items: baseline; gap: 0.5rem; max-width: 100%; }
+button.copy { font-size: 0.7rem; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; padding: 0.1rem 0.4rem; }
+button.copy:hover { color: inherit; }
+button.copy svg { display: block; }
+.empty, .null { color: var(--muted); font-style: italic; }
+.sensitive { color: var(--muted); }
+footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
+.back { margin: 0 0 0.25rem; font-size: 0.9rem; }
+.back a, .ws h2 a, a.src { color: var(--accent); text-decoration: none; }
+.back a:hover, .ws h2 a:hover, a.src:hover { text-decoration: underline; }
+section.ws p { color: var(--muted); margin: 0; }
+.no-match { color: var(--muted); font-style: italic; display: none; }
+nav.docs { margin: 0.5rem 0 1rem; font-size: 0.9rem; }
+nav.docs a { color: var(--accent); text-decoration: none; margin-right: 1rem; }
+nav.docs a:hover { text-decoration: underline; }
+nav.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
+a.act { color: var(--accent); text-decoration: none; font-size: 0.85rem; padding: 0.2rem 0.7rem;
+  border: 1px solid var(--border); border-radius: 999px; }
+a.act:hover { border-color: var(--accent); }
+details.prov { color: var(--muted); font-size: 0.8rem; margin: 0.25rem 0 1rem; }
+details.prov summary { cursor: pointer; }
+details.prov p { margin: 0.25rem 0 0; }
+article.doc a { color: var(--accent); }
+article.doc pre { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; overflow-x: auto; }
+article.doc code { background: color-mix(in srgb, var(--muted) 12%, transparent); padding: 0.1rem 0.25rem; border-radius: 4px; }
+article.doc pre code { background: none; padding: 0; }
+article.doc blockquote { border-left: 3px solid var(--border); margin-left: 0; padding-left: 1rem; color: var(--muted); }
+article.doc table { border-collapse: collapse; }
+article.doc a.anchor { margin-left: 0.4rem; color: var(--muted); text-decoration: none; opacity: 0; font-weight: 400; }
+article.doc :is(h1, h2, h3, h4, h5, h6):hover a.anchor, article.doc a.anchor:focus { opacity: 1; }
+article.doc :is(h1, h2, h3, h4, h5, h6) { scroll-margin-top: 1rem; }
+article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25rem 0.6rem; text-align: left; }
+</style>
+</head>
+<body>
+<header>
+<p class="back"><a href="../../">← tofu-garnish demo</a> · <a class="src" href="../">All docs</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a></p>
+</header>
+<main>
+<article class="doc">
+<p><a href="../how-to-guides/">How-to guides</a> · <a href="../reference/">Reference</a> · <a href="../explanation/">Explanation</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
+<h1 id="tutorial">Tutorial<a class="anchor" href="#tutorial" aria-label="Copy link to this section">#</a></h1>
+<p><em>Publish your Tofu outputs to GitHub Pages in about five minutes.</em></p>
+<h2 id="add-a-workflow">1. Add a workflow<a class="anchor" href="#add-a-workflow" aria-label="Copy link to this section">#</a></h2>
+<p>Create <code>.github/workflows/publish-outputs.yml</code>:</p>
+<pre><code>name: Publish Tofu outputs
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # push the generated site to the Pages branch
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Get outputs
+        uses: dflook/terraform-output@v2
+        id: tf-outputs
+        with:
+          path: my-terraform-config
+
+      - name: Publish outputs page
+        uses: lowlydba/tofu-garnish@v1
+        id: garnish
+        with:
+          outputs-file: ${{ steps.tf-outputs.outputs.json_output_path }}
+          title: My Stack Outputs</code></pre>
+<p>Push to <code>main</code> and let it run once. This creates the <code>gh-pages</code> branch.</p>
+<h2 id="enable-github-pages-for-the-branch">2. Enable GitHub Pages for the branch<a class="anchor" href="#enable-github-pages-for-the-branch" aria-label="Copy link to this section">#</a></h2>
+<p>In your repository: <strong>Settings → Pages → Build and deployment → Source → Deploy from a branch</strong>, then pick <code>gh-pages</code> / <code>/ (root)</code>.</p>
+<h2 id="visit-your-page">3. Visit your page<a class="anchor" href="#visit-your-page" aria-label="Copy link to this section">#</a></h2>
+<p>Open the site URL shown in the Pages settings (also available as the <code>page-url</code> action output on later runs).</p>
+<p>Expected result:</p>
+<ul><li>Each output rendered as a card with a collapsible tree for maps and lists.</li><li>A copy button on every node (shown on hover); nested values copy as pretty JSON.</li><li>A filter box that matches names, keys, and values.</li><li>Sensitive outputs masked.</li><li>A meta line linking the commit and workflow run that produced the page.</li></ul>
+<p>That's it. Every push regenerates and republishes the page.</p>
+</article>
+</main>
+<footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
+<script>
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('a.anchor');
+  if (!a) { return; }
+  var url = location.href.split('#')[0] + a.getAttribute('href');
+  history.replaceState(null, '', a.getAttribute('href'));
+  if (navigator.clipboard) { navigator.clipboard.writeText(url); }
+  a.textContent = '\u2713';
+  setTimeout(function () { a.textContent = '#'; }, 1200);
+});
+</script>
+</body>
+</html>
