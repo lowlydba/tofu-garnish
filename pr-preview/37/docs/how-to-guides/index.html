@@ -123,7 +123,7 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
       - uses: lowlydba/tofu-garnish@v1
         with:
           outputs-file: outputs.json</code></pre>
-<p>Sensitive outputs are automatically masked on the page (see <a href="../explanation/#sensitive-values">Explanation</a>).</p>
+<p>Sensitive outputs are automatically masked on the page (see <a href="../explanation/#how-are-sensitive-values-handled">Explanation</a>).</p>
 <h2 id="pass-outputs-inline-instead-of-a-file">Pass outputs inline instead of a file<a class="anchor" href="#pass-outputs-inline-instead-of-a-file" aria-label="Copy link to this section">#</a></h2>
 <p>Any <code>dflook/terraform-output</code> step's outputs can be passed straight through as JSON; complex values arrive as JSON-encoded strings and are unpacked automatically:</p>
 <pre><code>      - uses: lowlydba/tofu-garnish@v1

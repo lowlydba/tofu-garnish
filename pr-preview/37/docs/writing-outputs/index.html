@@ -115,7 +115,7 @@ output &quot;cidr_block&quot; { ... }  # sorts nowhere near the other two</code>
   sensitive   = true
   description = &quot;Superuser password for the RDS instance.&quot;
 }</code></pre>
-<p><code>sensitive = true</code> masks the value on the page and drops it from <code>outputs.json</code> entirely (see <a href="../explanation/#sensitive-values">sensitive value handling</a>). Don't rely on a vague name or a missing description to hide something that belongs in a secrets manager instead of an output.</p>
+<p><code>sensitive = true</code> masks the value on the page and drops it from <code>outputs.json</code> entirely (see <a href="../explanation/#how-are-sensitive-values-handled">sensitive value handling</a>). Don't rely on a vague name or a missing description to hide something that belongs in a secrets manager instead of an output.</p>
 <h2 id="flatten-what-should-be-copy-button-friendly">Flatten what should be copy-button-friendly<a class="anchor" href="#flatten-what-should-be-copy-button-friendly" aria-label="Copy link to this section">#</a></h2>
 <p>Every node gets a copy button (shown on hover): plain text for scalars, pretty JSON for anything nested. If an output's whole purpose is "the thing someone pastes into a CLI or console field", make it a scalar rather than a field buried three levels into a map.</p>
 </article>
