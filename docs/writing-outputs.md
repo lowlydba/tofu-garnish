@@ -75,7 +75,7 @@ output "db_password" {
 ```
 
 `sensitive = true` masks the value on the page and drops it from
-`outputs.json` entirely (see [sensitive value handling](explanation.md#sensitive-values)).
+`outputs.json` entirely (see [sensitive value handling](explanation.md#how-are-sensitive-values-handled)).
 Don't rely on a vague name or a missing description to hide something that
 belongs in a secrets manager instead of an output.
 

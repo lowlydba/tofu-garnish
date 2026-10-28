@@ -50,7 +50,7 @@ or providers. Terraform has no equivalent, and parsing HCL ourselves would
 violate the KISS budget. This is a Tofu-focused project, so the feature
 follows the Tofu toolchain.
 
-## <a name="sensitive-values"></a>How are sensitive values handled?
+## How are sensitive values handled?
 
 When the input is in `output -json` format, any output flagged
 `"sensitive": true` is rendered as a masked placeholder; the value never

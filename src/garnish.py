@@ -17,16 +17,20 @@ import argparse
 import html
 import json
 import os
+import posixpath
 import re
 import sys
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 __version__ = "1.0.0"
 
 REPO_URL = "https://github.com/lowlydba/tofu-garnish"
+
+# Site subdirectory holding rendered docs pages; reserved, so no workspace may use it.
+DOCS_DIR = "docs"
 
 MASK = "••••••••"
 LINK_ICON = "\U0001f517"
@@ -74,6 +78,7 @@ class Page:
     json_href: str = ""
     provenance: Provenance | None = None
     share_url: str = ""
+    docs: list[tuple[str, str]] = field(default_factory=list)
 
 
 def provenance_from_env() -> Provenance | None:
@@ -363,6 +368,26 @@ footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
 .back a:hover, .ws h2 a:hover, a.src:hover { text-decoration: underline; }
 section.ws p { color: var(--muted); margin: 0; }
 .no-match { color: var(--muted); font-style: italic; display: none; }
+nav.docs { margin: 0.5rem 0 1rem; font-size: 0.9rem; }
+nav.docs a { color: var(--accent); text-decoration: none; margin-right: 1rem; }
+nav.docs a:hover { text-decoration: underline; }
+nav.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
+a.act { color: var(--accent); text-decoration: none; font-size: 0.85rem; padding: 0.2rem 0.7rem;
+  border: 1px solid var(--border); border-radius: 999px; }
+a.act:hover { border-color: var(--accent); }
+details.prov { color: var(--muted); font-size: 0.8rem; margin: 0.25rem 0 1rem; }
+details.prov summary { cursor: pointer; }
+details.prov p { margin: 0.25rem 0 0; }
+article.doc a { color: var(--accent); }
+article.doc pre { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; overflow-x: auto; }
+article.doc code { background: color-mix(in srgb, var(--muted) 12%, transparent); padding: 0.1rem 0.25rem; border-radius: 4px; }
+article.doc pre code { background: none; padding: 0; }
+article.doc blockquote { border-left: 3px solid var(--border); margin-left: 0; padding-left: 1rem; color: var(--muted); }
+article.doc table { border-collapse: collapse; }
+article.doc a.anchor { margin-left: 0.4rem; color: var(--muted); text-decoration: none; opacity: 0; font-weight: 400; }
+article.doc :is(h1, h2, h3, h4, h5, h6):hover a.anchor, article.doc a.anchor:focus { opacity: 1; }
+article.doc :is(h1, h2, h3, h4, h5, h6) { scroll-margin-top: 1rem; }
+article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25rem 0.6rem; text-align: left; }
 """
 
 _JS = """\
@@ -478,6 +503,16 @@ def _document(title: str, header: str, main: str, script: str = "", footer: bool
 """
 
 
+def _docs_nav(docs: list[tuple[str, str]], prefix: str = "") -> str:
+    """Single link to the docs index, which scales regardless of page count."""
+    if not docs:
+        return ""
+    return (
+        f'<nav class="docs" aria-label="Documentation"><a href="{_esc(prefix)}{DOCS_DIR}/">'
+        f"Docs ({len(docs)})</a></nav>\n"
+    )
+
+
 def render_page(page: Page) -> str:
     """Render the full, self-contained HTML document."""
     if page.outputs:
@@ -495,11 +530,329 @@ def render_page(page: Page) -> str:
         f"{_provenance_html(page.provenance)}{_source_link(page.source_url)}"
         f"{_json_link(_absolute(page.share_url, page.json_href))}"
         f"{_share_fragment(page.share_url)}</p>\n"
+        f"{_docs_nav(page.docs, page.back_href)}"
         '<input id="filter" type="search" placeholder="Filter outputs by name or value…"'
         ' aria-label="Filter outputs by name or value">\n'
     )
     main = f'{sections}\n<p id="no-match" class="no-match">No outputs match the filter.</p>\n'
     return _document(page.title, header, main, script=_JS + _COPY_JS, footer=page.footer)
+
+
+# ---------------------------------------------------------------------------
+# Docs pages (Markdown)
+# ---------------------------------------------------------------------------
+
+_SAFE_SCHEME = re.compile(r"^(https?|mailto):", re.I)
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+_ANY_SCHEME = re.compile(r"^[a-z][a-z0-9+.-]*:", re.I)
+_MD_LINK = re.compile(r"\[([^\]]+)\]\(([^)\s]+)\)")
+_MD_SEPARATOR = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$")
+_MD_LIST_ITEM = re.compile(r"^\s*([-*+]|\d+\.)\s+(.*)")
+_MD_MARKUP = re.compile(r"(?m)^\s*(#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s?)|[*`]|\[([^\]]*)\]\([^)]*\)")
+
+
+def _md_href(href: str, resolve=None) -> str:
+    """Sanitize a link target and point relative links at docs pages or the source repo.
+
+    ``resolve`` maps a relative path to a final href, or None to leave it as
+    written. Without it, ``*.md`` links point at sibling docs pages.
+    """
+    if _CONTROL_CHARS.search(href):
+        return "#"
+    if _ANY_SCHEME.match(href) and not _SAFE_SCHEME.match(href):
+        return "#"
+    if _ANY_SCHEME.match(href) or href.startswith(("#", "/")):
+        return href
+    path, hash_, frag = href.partition("#")
+    if resolve is not None:
+        resolved = resolve(path)
+        return (resolved if resolved is not None else path) + hash_ + frag
+    if path.lower().endswith(".md"):
+        path = f"../{slugify(Path(unquote(path)).stem)}/"
+    return path + hash_ + frag
+
+
+def _md_inline(text: str, resolve=None) -> str:
+    """Render inline Markdown: code, links, bold, italic. Input is escaped first."""
+    parts = re.split(r"(`[^`]+`)", html.escape(text, quote=False))
+    out = []
+    for part in parts:
+        if part.startswith("`") and part.endswith("`") and len(part) > 2:
+            out.append(f"<code>{part[1:-1]}</code>")
+            continue
+        part = _MD_LINK.sub(
+            lambda m: f'<a href="{html.escape(_md_href(html.unescape(m[2]), resolve))}">{m[1]}</a>',
+            part,
+        )
+        part = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", part)
+        part = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<em>\1</em>", part)
+        out.append(part)
+    return "".join(out)
+
+
+def _md_cells(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def _heading_id(text: str, used: set[str]) -> str:
+    """GitHub-style heading slug, suffixed with -1, -2, ... when repeated."""
+    plain = _MD_MARKUP.sub(lambda mm: mm[2] or "", text).lower()
+    base = re.sub(r"[^\w\- ]", "", plain).strip().replace(" ", "-") or "section"
+    slug, n = base, 0
+    while slug in used:
+        n += 1
+        slug = f"{base}-{n}"
+    used.add(slug)
+    return slug
+
+
+_DOC_JS = """\
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('a.anchor');
+  if (!a) { return; }
+  var url = location.href.split('#')[0] + a.getAttribute('href');
+  history.replaceState(null, '', a.getAttribute('href'));
+  if (navigator.clipboard) { navigator.clipboard.writeText(url); }
+  a.textContent = '\\u2713';
+  setTimeout(function () { a.textContent = '#'; }, 1200);
+});
+"""
+
+
+def render_markdown(text: str, resolve=None) -> str:
+    """Render a practical Markdown subset to HTML.
+
+    Supports headings, paragraphs, fenced code, flat lists, blockquotes,
+    tables, rules, and inline code/links/bold/italic. Raw HTML is escaped.
+    """
+    lines = text.replace("\r\n", "\n").split("\n")
+    out: list[str] = []
+    para: list[str] = []
+    used_ids: set[str] = set()
+
+    def inline(value: str) -> str:
+        return _md_inline(value, resolve)
+
+    def flush() -> None:
+        if para:
+            out.append(f"<p>{inline(' '.join(para))}</p>")
+            para.clear()
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            flush()
+            i += 1
+            code = []
+            while i < len(lines) and not lines[i].strip().startswith("```"):
+                code.append(lines[i])
+                i += 1
+            out.append(f"<pre><code>{_esc(chr(10).join(code))}</code></pre>")
+        elif not stripped:
+            flush()
+        elif m := re.match(r"^(#{1,6})\s+(.*?)\s*#*\s*$", stripped):
+            flush()
+            level = len(m[1])
+            slug = _heading_id(m[2], used_ids)
+            out.append(
+                f'<h{level} id="{slug}">{inline(m[2])}'
+                f'<a class="anchor" href="#{slug}" aria-label="Copy link to this section">#</a>'
+                f"</h{level}>"
+            )
+        elif re.match(r"^([-*_])(\s*\1){2,}$", stripped):
+            flush()
+            out.append("<hr>")
+        elif _MD_LIST_ITEM.match(line):
+            flush()
+            tag = "ol" if line.lstrip()[0].isdigit() else "ul"
+            items = []
+            while i < len(lines) and (item := _MD_LIST_ITEM.match(lines[i])):
+                items.append(f"<li>{inline(item[2])}</li>")
+                i += 1
+            out.append(f"<{tag}>{''.join(items)}</{tag}>")
+            continue
+        elif stripped.startswith(">"):
+            flush()
+            quote_lines = []
+            while i < len(lines) and lines[i].strip().startswith(">"):
+                quote_lines.append(lines[i].strip().lstrip(">").strip())
+                i += 1
+            out.append(f"<blockquote><p>{inline(' '.join(quote_lines))}</p></blockquote>")
+            continue
+        elif "|" in stripped and i + 1 < len(lines) and _MD_SEPARATOR.match(lines[i + 1]):
+            flush()
+            head = "".join(f"<th>{inline(c)}</th>" for c in _md_cells(stripped))
+            rows = []
+            i += 2
+            while i < len(lines) and "|" in lines[i]:
+                cells = "".join(f"<td>{inline(c)}</td>" for c in _md_cells(lines[i]))
+                rows.append(f"<tr>{cells}</tr>")
+                i += 1
+            out.append(
+                f"<table><thead><tr>{head}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
+            )
+            continue
+        else:
+            para.append(stripped)
+        i += 1
+    flush()
+    return "\n".join(out) + "\n"
+
+
+def doc_title(text: str, fallback: str) -> str:
+    """Title of a docs page: its first H1, else ``fallback``."""
+    for line in text.splitlines():
+        if m := re.match(r"^#\s+(.*?)\s*#*\s*$", line.strip()):
+            return _MD_MARKUP.sub(lambda mm: mm[2] or "", m[1]).strip() or fallback
+    return fallback
+
+
+def render_doc(
+    text: str,
+    fallback_title: str,
+    site_title: str,
+    source_url: str = "",
+    footer: bool = True,
+    resolve=None,
+    depth: int = 0,
+) -> str:
+    """Render a Markdown docs page with links back to the docs index and site root.
+
+    ``depth`` is the number of folders between the page and the docs root.
+    """
+    title = doc_title(text, fallback_title)
+    up = "../" * depth
+    header = (
+        f'<p class="back"><a href="{up}../../">← {_esc(site_title)}</a>'
+        f' · <a class="src" href="{up}../">All docs</a>{_source_link(source_url)}</p>\n'
+    )
+    return _document(
+        f"{title} · {site_title}",
+        header,
+        f'<article class="doc">\n{render_markdown(text, resolve)}</article>\n',
+        footer=footer,
+        script=_DOC_JS,
+    )
+
+
+def _folder_line(slug: str) -> str:
+    folder = slug.rpartition("/")[0]
+    return f"<p>{_esc(folder)}/</p>" if folder else ""
+
+
+def render_docs_index(
+    docs: list[tuple[str, str]], site_title: str, source_url: str = "", footer: bool = True
+) -> str:
+    """Render the filterable index of every docs page, showing each page's folder."""
+    sections = "".join(
+        f'<section class="output ws" data-search="{_esc(title.lower())} {_esc(slug)}">'
+        f'<h2><a href="{_esc(slug)}/">{_esc(title)}</a></h2>'
+        f"{_folder_line(slug)}</section>"
+        for title, slug in docs
+    )
+    header = (
+        f'<p class="back"><a href="../">← {_esc(site_title)}</a></p>\n'
+        f"<h1>Docs</h1>\n<p>{_plural(len(docs), 'page')}{_source_link(source_url)}</p>\n"
+        '<input id="filter" type="search" placeholder="Filter docs…" aria-label="Filter docs">\n'
+    )
+    main = f'{sections}\n<p id="no-match" class="no-match">No docs match the filter.</p>\n'
+    return _document(f"Docs · {site_title}", header, main, script=_JS, footer=footer)
+
+
+def _build_docs(docs_dir: str, out_dir: Path, args: argparse.Namespace) -> list[tuple[str, str]]:
+    """Render every ``*.md`` under ``docs_dir`` to ``<out>/docs/<slug>/index.html``.
+
+    Also writes ``<out>/docs/index.html`` listing every page. Relative links
+    resolve to other docs pages, mirroring the folder layout (``aws/setup.md``
+    becomes ``docs/aws/setup/``); links to other repo files (such as the
+    root README) point at the source repository when ``--source-url`` is set.
+    Returns ``(title, slug)`` pairs; ``README.md`` and ``index.md`` sort first.
+    """
+    root = Path(docs_dir)
+    if not root.is_dir():
+        raise ValueError(f"docs directory not found: {docs_dir}")
+    pages: dict[str, tuple[str, str, str]] = {}
+    for path in sorted(root.rglob("*.md")):
+        slug = "/".join(slugify(part) for part in path.relative_to(root).with_suffix("").parts)
+        if slug in pages:
+            raise ValueError(
+                f"docs page {path.name!r} clashes with another page (both map to {slug!r})"
+            )
+        text = path.read_text(encoding="utf-8")
+        pages[slug] = (doc_title(text, path.stem), text, _repo_path(path))
+    known = {repo_path: slug for slug, (_, _, repo_path) in pages.items()}
+
+    def resolver_for(repo_path: str, depth: int):
+        base = posixpath.dirname(repo_path)
+        up = "../" * depth
+
+        def resolve(link: str) -> str | None:
+            target = posixpath.normpath(posixpath.join(base, link))
+            decoded = posixpath.normpath(posixpath.join(base, unquote(link)))
+            if decoded in known:
+                return f"{up}../{known[decoded]}/"
+            if args.source_url and not target.startswith(".."):
+                return f"{args.source_url.rstrip('/')}/blob/HEAD/{target}"
+            return None
+
+        return resolve
+
+    docs_out = out_dir / DOCS_DIR
+    for slug, (_, text, repo_path) in pages.items():
+        text = _strip_back_link(text, posixpath.dirname(repo_path), known)
+        page_dir = docs_out / slug
+        page_dir.mkdir(parents=True, exist_ok=True)
+        depth = slug.count("/")
+        (page_dir / "index.html").write_text(
+            render_doc(
+                text,
+                slug.rpartition("/")[2],
+                args.title,
+                args.source_url,
+                not args.no_footer,
+                resolver_for(repo_path, depth),
+                depth,
+            ),
+            encoding="utf-8",
+        )
+        print(f"garnish: wrote {page_dir / 'index.html'}")
+    ordered = sorted(pages.items(), key=lambda kv: _docs_order(kv[0], kv[1][0]))
+    docs = [(title, slug) for slug, (title, _, _) in ordered]
+    docs_out.mkdir(parents=True, exist_ok=True)
+    (docs_out / "index.html").write_text(
+        render_docs_index(docs, args.title, args.source_url, not args.no_footer), encoding="utf-8"
+    )
+    return docs
+
+
+_BACK_LINK = re.compile(r"\A\[←[^\]]*\]\(([^)\s]+)\)(?:[ \t]*·[ \t]*)?")
+
+
+def _strip_back_link(text: str, base: str, known: dict[str, str]) -> str:
+    """Drop a leading ``[← Back ...](target)`` link whose target is not a docs page.
+
+    Such links serve repo browsing (for example back to the root README); the
+    rendered page already links back to the docs index.
+    """
+    match = _BACK_LINK.match(text)
+    if not match:
+        return text
+    if posixpath.normpath(posixpath.join(base, unquote(match.group(1)))) in known:
+        return text
+    return text[match.end() :]
+
+
+def _docs_order(slug: str, title: str) -> tuple[bool, str, bool, str]:
+    """Root pages before folders; within a folder, readme/index first, then by title."""
+    folder, _, leaf = slug.rpartition("/")
+    return (bool(folder), folder, leaf not in ("readme", "index"), title.lower())
+
+
+def _repo_path(path: Path) -> str:
+    """POSIX path of ``path`` relative to the working directory (the repo root in Actions)."""
+    return Path(os.path.relpath(path)).as_posix()
 
 
 # ---------------------------------------------------------------------------
@@ -539,6 +892,33 @@ document.querySelectorAll('time[datetime]').forEach(function (t) {
 """
 
 
+def _landing_actions(source_url: str, share_url: str, docs: list[tuple[str, str]]) -> str:
+    """Primary landing actions as one quiet row, keeping the subtitle to a single fact line."""
+    items = []
+    if docs:
+        items.append(f'<a class="act" href="{DOCS_DIR}/">Docs ({len(docs)})</a>')
+    if source_url:
+        items.append(f'<a class="act" href="{_esc(source_url)}">Source</a>')
+    if share_url:
+        items.append(_link_button(share_url, LINK_ICON, "copy anchor", CHECK_MARK))
+    if not items:
+        return ""
+    return f'<nav class="actions" aria-label="Site links">{"".join(items)}</nav>\n'
+
+
+def _provenance_details(provenance: Provenance | None) -> str:
+    """Commit and run links tucked behind a disclosure, since few visitors need them."""
+    if provenance is None:
+        return ""
+    links = (
+        f'<a class="src" href="{_esc(provenance.commit_url)}">'
+        f"commit {_esc(provenance.commit_sha[:7])}</a>"
+    )
+    if provenance.run_url:
+        links += f' · <a class="src" href="{_esc(provenance.run_url)}">workflow run</a>'
+    return f'<details class="prov"><summary>Build details</summary><p>{links}</p></details>\n'
+
+
 def render_landing(
     title: str,
     workspaces: list[tuple[str, str, int, str, str]],
@@ -546,33 +926,35 @@ def render_landing(
     source_url: str = "",
     footer: bool = True,
     provenance: Provenance | None = None,
-    json_links: bool = False,
     share_url: str = "",
+    docs: list[tuple[str, str]] | None = None,
 ) -> str:
     """Render the landing page linking to per-workspace pages.
 
     ``workspaces`` is a list of ``(name, slug, output_count, updated,
     updated_at)`` tuples; ``updated`` is the display string and ``updated_at``
-    the ISO timestamp the client rewrites into a relative age. With
-    ``json_links``, each card links its workspace's ``outputs.json``.
+    the ISO timestamp the client rewrites into a relative age.
     """
     sections = []
     for name, slug, count, updated, updated_at in workspaces:
         stamp = ""
         if updated and updated_at:
-            stamp = f' · updated <time datetime="{_esc(updated_at)}">{_esc(updated)}</time>'
+            stamp = (
+                f' · updated <time datetime="{_esc(updated_at)}" title="{_esc(updated)}">'
+                f"{_esc(updated)}</time>"
+            )
         elif updated:
             stamp = f" · updated {_esc(updated)}"
-        json_link = _json_link(_absolute(share_url, f"{slug}/outputs.json")) if json_links else ""
         sections.append(
             f'<section class="output ws" data-search="{_esc(name.lower())}">'
             f'<h2><a href="{_esc(slug)}/">{_esc(name)}</a></h2>'
-            f"<p>{_plural(count, 'output')}{stamp}{json_link}</p></section>"
+            f"<p>{_plural(count, 'output')}{stamp}</p></section>"
         )
+    actions = _landing_actions(source_url, share_url, docs or [])
     header = (
         f"<h1>{_esc(title)}</h1>\n"
-        f"<p>{_plural(len(workspaces), 'workspace')} · generated {_esc(generated_at)}"
-        f"{_provenance_html(provenance)}{_source_link(source_url)}{_share_fragment(share_url)}</p>\n"
+        f"<p>{_plural(len(workspaces), 'workspace')} · generated {_esc(generated_at)}</p>\n"
+        f"{actions}{_provenance_details(provenance)}"
     )
     return _document(
         title, header, "".join(sections) + "\n", script=_LANDING_JS + _COPY_JS, footer=footer
@@ -645,6 +1027,13 @@ def _run_single(args: argparse.Namespace) -> int:
         print(f"garnish: {exc}", file=sys.stderr)
         return 2
 
+    out_dir = Path(args.output_dir)
+    try:
+        docs = _build_docs(args.docs_dir, out_dir, args) if args.docs_dir else []
+    except ValueError as exc:
+        print(f"garnish: {exc}", file=sys.stderr)
+        return 2
+
     page = Page(
         title=args.title,
         outputs=outputs,
@@ -654,8 +1043,8 @@ def _run_single(args: argparse.Namespace) -> int:
         json_href="" if args.no_outputs_json else "outputs.json",
         provenance=provenance_from_env(),
         share_url=_share_base(args.site_url),
+        docs=docs,
     )
-    out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "index.html"
     out_file.write_text(render_page(page), encoding="utf-8")
@@ -678,6 +1067,16 @@ def _read_manifest(out_dir: Path) -> dict:
     return workspaces if isinstance(workspaces, dict) else {}
 
 
+def _read_manifest_docs(out_dir: Path) -> list[tuple[str, str]]:
+    """Read the docs pages recorded in a site's manifest, if any."""
+    manifest_path = out_dir / "manifest.json"
+    try:
+        data = json.loads(manifest_path.read_text(encoding="utf-8"))
+        return [(str(d["title"]), str(d["slug"])) for d in data.get("docs", [])]
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return []
+
+
 def _run_workspaces(args: argparse.Namespace) -> int:
     now = _now()
     generated_at = now.strftime("%Y-%m-%d %H:%M UTC")
@@ -691,6 +1090,8 @@ def _run_workspaces(args: argparse.Namespace) -> int:
         for spec in args.workspace:
             name, path = parse_workspace_spec(spec)
             slug = slugify(name)
+            if slug == DOCS_DIR:
+                raise ValueError(f"workspace {name!r} maps to {DOCS_DIR!r}, which is reserved")
             if slug in seen_slugs:
                 raise ValueError(
                     f"workspace {name!r} clashes with {seen_slugs[slug]!r} "
@@ -706,6 +1107,14 @@ def _run_workspaces(args: argparse.Namespace) -> int:
 
     out_dir = Path(args.output_dir)
     merged: dict[str, dict] = _read_manifest(out_dir) if args.merge else {}
+    try:
+        if args.docs_dir:
+            docs = _build_docs(args.docs_dir, out_dir, args)
+        else:
+            docs = _read_manifest_docs(out_dir) if args.merge else []
+    except ValueError as exc:
+        print(f"garnish: {exc}", file=sys.stderr)
+        return 2
 
     for name, slug, outputs in workspaces:
         page = Page(
@@ -718,6 +1127,7 @@ def _run_workspaces(args: argparse.Namespace) -> int:
             json_href="" if args.no_outputs_json else "outputs.json",
             provenance=provenance,
             share_url=f"{share_base}{slug}/" if share_base else "",
+            docs=docs,
         )
         ws_dir = out_dir / slug
         ws_dir.mkdir(parents=True, exist_ok=True)
@@ -753,8 +1163,8 @@ def _run_workspaces(args: argparse.Namespace) -> int:
         source_url=args.source_url,
         footer=not args.no_footer,
         provenance=provenance,
-        json_links=not args.no_outputs_json,
         share_url=share_base,
+        docs=docs,
     )
     (out_dir / "index.html").write_text(landing, encoding="utf-8")
     manifest = {
@@ -762,6 +1172,7 @@ def _run_workspaces(args: argparse.Namespace) -> int:
         "version": __version__,
         "title": args.title,
         "workspaces": dict(entries),
+        "docs": [{"title": title, "slug": slug} for title, slug in docs],
     }
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"garnish: wrote {out_dir / 'index.html'} ({len(entries)} workspaces)")
@@ -847,6 +1258,15 @@ def main(argv: list[str] | None = None) -> int:
         "--no-outputs-json",
         action="store_true",
         help="Skip writing the machine-readable outputs.json next to each page.",
+    )
+    parser.add_argument(
+        "--docs-dir",
+        default="",
+        metavar="DIR",
+        help=(
+            "Directory of Markdown files rendered as docs pages under "
+            "/docs/<name>/ and linked from the landing page and every output page."
+        ),
     )
     parser.add_argument("--version", action="version", version=__version__)
     args = parser.parse_args(argv)

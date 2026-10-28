@@ -10,6 +10,9 @@
 | `outputs`      | no*      | none                | Inline JSON string of outputs, e.g. `toJson(steps.<id>.outputs)` from a `dflook/terraform-output` step. Ignored if `outputs-file` is set.        |
 | `workspaces`   | no*      | none                | Multiline `name=path` pairs for multi-workspace sites. Only the named workspaces are overwritten on deploy. Takes precedence over other inputs.  |
 | `module-dir`   | no       | none                | **OpenTofu ≥ 1.10 only.** Root module directory; descriptions are extracted with `tofu show -json -module` and rendered on the page.             |
+| `docs-dir`     | no       | none                | Directory of Markdown files rendered to `/docs/<name>/` and linked from the landing and output pages. `other.md` links are rewritten. Kept across `workspaces` deploys when omitted. |
+| `site-path`    | no       | branch root         | Subdirectory of the Pages branch to publish under (e.g. `pr-preview/42`). Other files on the branch are untouched.                                |
+| `remove`       | no       | `"false"`           | `"true"` deletes `site-path` from the Pages branch instead of publishing (e.g. when a PR closes). Requires `site-path`.                           |
 | `title`        | no       | `Tofu Outputs`      | Title shown on the generated page(s).                                                                                                            |
 | `source-repo-url` | no    | current repository  | URL of the repo the outputs come from, rendered as a "source repository" link on each page. Set to `""` to omit the link.                        |
 | `site-url`    | no       | none                | Public base URL when the site is served from a vanity domain (e.g. `https://labs.example.org/my-repo`). Adds "copy link" buttons that copy URLs under it instead of the browser's address. |

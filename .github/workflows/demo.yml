@@ -10,6 +10,7 @@ on:
       - src/**
       - action.yml
       - examples/**
+      - docs/**
 
 permissions: {}
 
@@ -51,4 +52,5 @@ jobs:
             prod=demo-outputs.json
             staging=staging-outputs.json
           module-dir: examples/demo
+          docs-dir: docs
           title: tofu-garnish demo
