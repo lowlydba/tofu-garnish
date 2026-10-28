@@ -1,0 +1,89 @@
+name: Preview
+
+# Publishes the demo site for a pull request under pr-preview/<number>/ on the
+# Pages branch, and removes it again when the pull request closes. Skipped for
+# forks, whose tokens cannot push.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - src/**
+      - action.yml
+      - examples/**
+      - docs/**
+      - .github/workflows/preview.yml
+
+permissions: {}
+
+concurrency:
+  group: tofu-garnish-demo
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    name: Deploy PR preview
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the preview to the gh-pages branch
+      pull-requests: write # comment the preview URL
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_wrapper: false
+
+      - name: Apply example configs and export outputs
+        run: |
+          set -euo pipefail
+          for ws in demo staging; do
+            tofu -chdir="examples/$ws" init -input=false
+            tofu -chdir="examples/$ws" apply -input=false -auto-approve
+            tofu -chdir="examples/$ws" output -json > "$ws-outputs.json"
+          done
+
+      - name: Garnish outputs
+        id: garnish
+        uses: ./
+        with:
+          workspaces: |
+            prod=demo-outputs.json
+            staging=staging-outputs.json
+          module-dir: examples/demo
+          docs-dir: docs
+          title: tofu-garnish preview (PR ${{ github.event.pull_request.number }})
+          site-path: pr-preview/${{ github.event.pull_request.number }}
+
+      - name: Comment preview URL
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGE_URL: ${{ steps.garnish.outputs.page-url }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          [ -n "$PAGE_URL" ] || exit 0
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none \
+            --body "Preview: $PAGE_URL (updates on each push; removed when the PR closes)"
+
+  cleanup:
+    name: Remove PR preview
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # delete the preview from the gh-pages branch
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Remove preview
+        uses: ./
+        with:
+          remove: "true"
+          site-path: pr-preview/${{ github.event.pull_request.number }}

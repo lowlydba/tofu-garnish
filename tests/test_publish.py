@@ -389,3 +389,52 @@ class TestMain:
         monkeypatch.setattr(publish.time, "sleep", lambda _: None)
         assert publish_main() == 0
         assert api.pushed
+
+
+class TestSitePath:
+    def test_publishes_under_prefix_and_reports_url(self, env, monkeypatch):
+        monkeypatch.setenv("GARNISH_OUTPUTS", '{"host": "example.com"}')
+        monkeypatch.setenv("GARNISH_SITE_PATH", "/pr-preview/7/")
+        api = FakeApi(tip="a" * 40)
+        assert run_publish(api=api) == 0
+        paths = {e["path"] for e in api.last_tree["tree"]}
+        assert "pr-preview/7/index.html" in paths
+        assert outputs_of(env)["page-url"] == "https://ex.io/r/pr-preview/7/"
+
+    def test_rejects_path_traversal(self, env, monkeypatch):
+        monkeypatch.setenv("GARNISH_OUTPUTS", '{"host": "example.com"}')
+        monkeypatch.setenv("GARNISH_SITE_PATH", "../x")
+        with pytest.raises(SystemExit):
+            run_publish(api=FakeApi())
+
+
+class TestRemove:
+    def _api(self):
+        api = FakeApi(tip="a" * 40)
+        base = api.__call__
+
+        def call(method, path, payload=None):
+            if method == "GET" and "/git/trees/" in path:
+                return {
+                    "tree": [
+                        {"path": "pr-preview/7/index.html", "mode": "100644", "type": "blob"},
+                        {"path": "pr-preview/7", "mode": "040000", "type": "tree"},
+                        {"path": "pr-preview/70/index.html", "mode": "100644", "type": "blob"},
+                        {"path": "index.html", "mode": "100644", "type": "blob"},
+                    ]
+                }
+            return base(method, path, payload)
+
+        return api, call
+
+    def test_deletes_only_prefix(self, env, monkeypatch):
+        monkeypatch.setenv("GARNISH_SITE_PATH", "pr-preview/7")
+        api, call = self._api()
+        assert publish.remove(api=call) == 0
+        assert api.last_tree["tree"] == [
+            {"path": "pr-preview/7/index.html", "mode": "100644", "type": "blob", "sha": None}
+        ]
+
+    def test_refuses_root(self, env, monkeypatch):
+        monkeypatch.delenv("GARNISH_SITE_PATH", raising=False)
+        assert publish.remove(api=FakeApi(tip="a" * 40)) == 1

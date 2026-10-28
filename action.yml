@@ -41,6 +41,14 @@ inputs:
       configuration mode). Applies to all listed workspaces.
     required: false
     default: ""
+  docs-dir:
+    description: >-
+      Directory of Markdown files (e.g. `docs`) rendered as plain docs pages
+      under /docs/<name>/ and linked from the landing page and every output
+      page. Relative `other.md` links between pages are rewritten. When
+      omitted in a workspaces deploy, docs from earlier deploys are kept.
+    required: false
+    default: ""
   title:
     description: Title for the generated page.
     required: false
@@ -90,6 +98,19 @@ inputs:
     description: Branch GitHub Pages serves from. Created if it doesn't exist.
     required: false
     default: gh-pages
+  site-path:
+    description: >-
+      Subdirectory of the Pages branch to publish the site under (e.g.
+      `pr-preview/42` for a pull request preview). Files elsewhere on the
+      branch are untouched. Defaults to the branch root.
+    required: false
+    default: ""
+  remove:
+    description: >-
+      Set to "true" to delete site-path from the Pages branch instead of
+      publishing (e.g. when a pull request closes). Requires site-path.
+    required: false
+    default: "false"
   github-token:
     description: >-
       Token used to read and push the Pages branch. Needs contents write
@@ -99,7 +120,7 @@ inputs:
 
 outputs:
   page-url:
-    description: URL of the GitHub Pages site (empty when deploy is false).
+    description: URL of the published site, including site-path (empty when deploy is false).
     value: ${{ steps.garnish.outputs.page-url }}
   site-dir:
     description: Directory containing the generated index.html.
@@ -116,6 +137,7 @@ runs:
         GARNISH_OUTPUTS_FILE: ${{ inputs.outputs-file }}
         GARNISH_WORKSPACES: ${{ inputs.workspaces }}
         GARNISH_MODULE_DIR: ${{ inputs.module-dir }}
+        GARNISH_DOCS_DIR: ${{ inputs.docs-dir }}
         GARNISH_TITLE: ${{ inputs.title }}
         GARNISH_SOURCE_URL: ${{ inputs.source-repo-url }}
         GARNISH_SITE_URL: ${{ inputs.site-url }}
@@ -125,5 +147,7 @@ runs:
         GARNISH_DEPLOY: ${{ inputs.deploy }}
         GARNISH_TOKEN: ${{ inputs.github-token }}
         PAGES_BRANCH: ${{ inputs.pages-branch }}
+        GARNISH_SITE_PATH: ${{ inputs.site-path }}
+        GARNISH_REMOVE: ${{ inputs.remove }}
         GARNISH_ACTION_PATH: ${{ github.action_path }}
       run: python3 "$GARNISH_ACTION_PATH/src/publish.py"

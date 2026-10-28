@@ -1132,3 +1132,33 @@ class TestOutputsJson:
         )
         assert rc == 0
         assert not (out / "prod" / "outputs.json").exists()
+
+
+def test_render_markdown_escapes_html_and_sanitizes_links():
+    html = garnish.render_markdown("# T\n\n<script>x</script> [bad](javascript:alert(1)) [ok](aws.md#x)")
+    assert "<script>" not in html
+    assert 'href="#"' in html
+    assert 'href="../aws/#x"' in html
+
+
+def test_docs_dir_builds_pages_and_links(tmp_path):
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "aws.md").write_text("# AWS notes\n\n- one\n- two\n", encoding="utf-8")
+    outputs = tmp_path / "o.json"
+    outputs.write_text('{"a": "1"}', encoding="utf-8")
+    site = tmp_path / "site"
+    argv = ["--output-dir", str(site), "--docs-dir", str(docs)]
+    assert garnish.main([*argv, "--workspace", f"prod={outputs}"]) == 0
+    assert "<li>one</li>" in (site / "docs" / "aws" / "index.html").read_text(encoding="utf-8")
+    assert 'href="docs/aws/"' in (site / "index.html").read_text(encoding="utf-8")
+    assert 'href="../docs/aws/"' in (site / "prod" / "index.html").read_text(encoding="utf-8")
+    # A merge run without --docs-dir keeps the recorded docs links.
+    assert garnish.main(["--output-dir", str(site), "--merge", "--workspace", f"prod={outputs}"]) == 0
+    assert 'href="docs/aws/"' in (site / "index.html").read_text(encoding="utf-8")
+
+
+def test_docs_workspace_name_reserved(tmp_path):
+    outputs = tmp_path / "o.json"
+    outputs.write_text('{"a": "1"}', encoding="utf-8")
+    assert garnish.main(["--output-dir", str(tmp_path / "s"), "--workspace", f"docs={outputs}"]) == 2
