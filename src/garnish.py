@@ -713,12 +713,17 @@ def render_doc(
     source_url: str = "",
     footer: bool = True,
     resolve=None,
+    depth: int = 0,
 ) -> str:
-    """Render a Markdown docs page with links back to the docs index and site root."""
+    """Render a Markdown docs page with links back to the docs index and site root.
+
+    ``depth`` is the number of folders between the page and the docs root.
+    """
     title = doc_title(text, fallback_title)
+    up = "../" * depth
     header = (
-        f'<p class="back"><a href="../../">← {_esc(site_title)}</a>'
-        f' · <a class="src" href="../">All docs</a>{_source_link(source_url)}</p>\n'
+        f'<p class="back"><a href="{up}../../">← {_esc(site_title)}</a>'
+        f' · <a class="src" href="{up}../">All docs</a>{_source_link(source_url)}</p>\n'
     )
     return _document(
         f"{title} · {site_title}",
@@ -729,13 +734,19 @@ def render_doc(
     )
 
 
+def _folder_line(slug: str) -> str:
+    folder = slug.rpartition("/")[0]
+    return f"<p>{_esc(folder)}/</p>" if folder else ""
+
+
 def render_docs_index(
     docs: list[tuple[str, str]], site_title: str, source_url: str = "", footer: bool = True
 ) -> str:
-    """Render the filterable index of every docs page."""
+    """Render the filterable index of every docs page, showing each page's folder."""
     sections = "".join(
         f'<section class="output ws" data-search="{_esc(title.lower())} {_esc(slug)}">'
-        f'<h2><a href="{_esc(slug)}/">{_esc(title)}</a></h2></section>'
+        f'<h2><a href="{_esc(slug)}/">{_esc(title)}</a></h2>'
+        f"{_folder_line(slug)}</section>"
         for title, slug in docs
     )
     header = (
@@ -751,7 +762,8 @@ def _build_docs(docs_dir: str, out_dir: Path, args: argparse.Namespace) -> list[
     """Render every ``*.md`` under ``docs_dir`` to ``<out>/docs/<slug>/index.html``.
 
     Also writes ``<out>/docs/index.html`` listing every page. Relative links
-    resolve to sibling docs pages; links to other repo files (such as the
+    resolve to other docs pages, mirroring the folder layout (``aws/setup.md``
+    becomes ``docs/aws/setup/``); links to other repo files (such as the
     root README) point at the source repository when ``--source-url`` is set.
     Returns ``(title, slug)`` pairs; ``README.md`` and ``index.md`` sort first.
     """
@@ -760,7 +772,7 @@ def _build_docs(docs_dir: str, out_dir: Path, args: argparse.Namespace) -> list[
         raise ValueError(f"docs directory not found: {docs_dir}")
     pages: dict[str, tuple[str, str, str]] = {}
     for path in sorted(root.rglob("*.md")):
-        slug = slugify(path.stem)
+        slug = "/".join(slugify(part) for part in path.relative_to(root).with_suffix("").parts)
         if slug in pages:
             raise ValueError(
                 f"docs page {path.name!r} clashes with another page (both map to {slug!r})"
@@ -769,13 +781,14 @@ def _build_docs(docs_dir: str, out_dir: Path, args: argparse.Namespace) -> list[
         pages[slug] = (doc_title(text, path.stem), text, _repo_path(path))
     known = {repo_path: slug for slug, (_, _, repo_path) in pages.items()}
 
-    def resolver_for(repo_path: str):
+    def resolver_for(repo_path: str, depth: int):
         base = posixpath.dirname(repo_path)
+        up = "../" * depth
 
         def resolve(link: str) -> str | None:
             target = posixpath.normpath(posixpath.join(base, link))
             if target in known:
-                return f"../{known[target]}/"
+                return f"{up}../{known[target]}/"
             if args.source_url and not target.startswith(".."):
                 return f"{args.source_url.rstrip('/')}/blob/HEAD/{target}"
             return None
@@ -787,20 +800,21 @@ def _build_docs(docs_dir: str, out_dir: Path, args: argparse.Namespace) -> list[
         text = _strip_back_link(text, posixpath.dirname(repo_path), known)
         page_dir = docs_out / slug
         page_dir.mkdir(parents=True, exist_ok=True)
+        depth = slug.count("/")
         (page_dir / "index.html").write_text(
             render_doc(
                 text,
-                slug,
+                slug.rpartition("/")[2],
                 args.title,
                 args.source_url,
                 not args.no_footer,
-                resolver_for(repo_path),
+                resolver_for(repo_path, depth),
+                depth,
             ),
             encoding="utf-8",
         )
         print(f"garnish: wrote {page_dir / 'index.html'}")
-    first = ("readme", "index")
-    ordered = sorted(pages.items(), key=lambda kv: (kv[0] not in first, kv[1][0].lower()))
+    ordered = sorted(pages.items(), key=lambda kv: _docs_order(kv[0], kv[1][0]))
     docs = [(title, slug) for slug, (title, _, _) in ordered]
     docs_out.mkdir(parents=True, exist_ok=True)
     (docs_out / "index.html").write_text(
@@ -824,6 +838,12 @@ def _strip_back_link(text: str, base: str, known: dict[str, str]) -> str:
     if posixpath.normpath(posixpath.join(base, match.group(1))) in known:
         return text
     return text[match.end() :]
+
+
+def _docs_order(slug: str, title: str) -> tuple[bool, str, bool, str]:
+    """Root pages before folders; within a folder, readme/index first, then by title."""
+    folder, _, leaf = slug.rpartition("/")
+    return (bool(folder), folder, leaf not in ("readme", "index"), title.lower())
 
 
 def _repo_path(path: Path) -> str:
@@ -902,7 +922,6 @@ def render_landing(
     source_url: str = "",
     footer: bool = True,
     provenance: Provenance | None = None,
-    json_links: bool = False,
     share_url: str = "",
     docs: list[tuple[str, str]] | None = None,
 ) -> str:
@@ -910,8 +929,7 @@ def render_landing(
 
     ``workspaces`` is a list of ``(name, slug, output_count, updated,
     updated_at)`` tuples; ``updated`` is the display string and ``updated_at``
-    the ISO timestamp the client rewrites into a relative age. With
-    ``json_links``, each card links its workspace's ``outputs.json``.
+    the ISO timestamp the client rewrites into a relative age.
     """
     sections = []
     for name, slug, count, updated, updated_at in workspaces:
@@ -920,11 +938,10 @@ def render_landing(
             stamp = f' · updated <time datetime="{_esc(updated_at)}">{_esc(updated)}</time>'
         elif updated:
             stamp = f" · updated {_esc(updated)}"
-        json_link = _json_link(_absolute(share_url, f"{slug}/outputs.json")) if json_links else ""
         sections.append(
             f'<section class="output ws" data-search="{_esc(name.lower())}">'
             f'<h2><a href="{_esc(slug)}/">{_esc(name)}</a></h2>'
-            f"<p>{_plural(count, 'output')}{stamp}{json_link}</p></section>"
+            f"<p>{_plural(count, 'output')}{stamp}</p></section>"
         )
     actions = _landing_actions(source_url, share_url, docs or [])
     header = (
@@ -1139,7 +1156,6 @@ def _run_workspaces(args: argparse.Namespace) -> int:
         source_url=args.source_url,
         footer=not args.no_footer,
         provenance=provenance,
-        json_links=not args.no_outputs_json,
         share_url=share_base,
         docs=docs,
     )

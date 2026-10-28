@@ -439,14 +439,6 @@ class TestPageChrome:
             share_url="https://x.org/r/prod/",
         )
         assert 'href="https://x.org/r/prod/outputs.json">JSON</a>' in render_page(page)
-        landing = render_landing(
-            "T",
-            [("prod", "prod", 1, "now", "")],
-            "now",
-            json_links=True,
-            share_url="https://x.org/r/",
-        )
-        assert 'href="https://x.org/r/prod/outputs.json">JSON</a>' in landing
 
     def test_landing_share_button(self):
         html = render_landing(
@@ -508,11 +500,7 @@ class TestPageChrome:
         assert "updated sometime" in html
         assert "<time" not in html
 
-    def test_landing_workspace_json_link(self):
-        html = render_landing("T", [("prod", "prod", 1, "now", "")], "now", json_links=True)
-        assert '<a class="src" href="prod/outputs.json">JSON</a>' in html
-
-    def test_landing_workspace_json_links_off_by_default(self):
+    def test_landing_has_no_workspace_json_links(self):
         html = render_landing("T", [("prod", "prod", 1, "now", "")], "now")
         assert ">JSON</a>" not in html
 
@@ -1082,8 +1070,11 @@ class TestOutputsJson:
                 str(out),
             ]
         )
+        assert 'href="outputs.json">JSON</a>' in (out / "prod" / "index.html").read_text(
+            encoding="utf-8"
+        )
         landing = (out / "index.html").read_text(encoding="utf-8")
-        assert '<a class="src" href="prod/outputs.json">JSON</a>' in landing
+        assert ">JSON</a>" not in landing
 
     def test_no_outputs_json_flag_omits_landing_links(self, tmp_path):
         out = tmp_path / "site"
@@ -1197,11 +1188,39 @@ def test_docs_dir_missing_and_clashing(tmp_path, monkeypatch, capsys):
     base = ["--output-dir", "site", "--input", str(outputs)]
     assert garnish.main([*base, "--docs-dir", "nope"]) == 2
     assert garnish.main([*base, "--docs-dir", "nope", "--workspace", f"p={outputs}"]) == 2
-    (tmp_path / "docs" / "a").mkdir(parents=True)
-    (tmp_path / "docs" / "x.md").write_text("one", encoding="utf-8")
-    (tmp_path / "docs" / "a" / "x.md").write_text("two", encoding="utf-8")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "A b.md").write_text("one", encoding="utf-8")
+    (tmp_path / "docs" / "a-b.md").write_text("two", encoding="utf-8")
     assert garnish.main([*base, "--docs-dir", "docs"]) == 2
     assert "clashes" in capsys.readouterr().err
+
+
+def test_docs_nested_folders_mirror_layout(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    docs = tmp_path / "docs"
+    (docs / "aws").mkdir(parents=True)
+    (docs / "gcp").mkdir()
+    (docs / "top.md").write_text("[s](aws/setup.md) [g](gcp/setup.md)\n", encoding="utf-8")
+    (docs / "aws" / "setup.md").write_text(
+        "# AWS setup\n\n[t](../top.md) [g](../gcp/setup.md)\n", encoding="utf-8"
+    )
+    (docs / "gcp" / "setup.md").write_text("# GCP setup\n", encoding="utf-8")
+    outputs = tmp_path / "o.json"
+    outputs.write_text('{"a": "1"}', encoding="utf-8")
+    argv = ["--output-dir", "site", "--docs-dir", "docs", "--input", str(outputs)]
+    assert garnish.main(argv) == 0
+    site = tmp_path / "site" / "docs"
+    nested = (site / "aws" / "setup" / "index.html").read_text(encoding="utf-8")
+    assert 'href="../../../">' in nested
+    assert 'href="../../">All docs' in nested
+    assert 'href="../../top/"' in nested
+    assert 'href="../../gcp/setup/"' in nested
+    top = (site / "top" / "index.html").read_text(encoding="utf-8")
+    assert 'href="../aws/setup/"' in top
+    index = (site / "index.html").read_text(encoding="utf-8")
+    assert 'href="aws/setup/"' in index
+    assert "<p>aws/</p>" in index
+    assert index.index(">top<") < index.index("AWS setup") < index.index("GCP setup")
 
 
 def test_render_markdown_blocks():
