@@ -813,7 +813,10 @@ def _build_docs(docs_dir: str, out_dir: Path, args: argparse.Namespace) -> list[
 
         def resolve_image(link: str) -> str | None:
             path, query_sep, query = link.partition("?")
-            target = posixpath.normpath(posixpath.join(base, unquote(path)))
+            decoded = unquote(path)
+            if _CONTROL_CHARS.search(decoded):
+                return "#"
+            target = posixpath.normpath(posixpath.join(base, decoded))
             if target.startswith("..") or target.startswith("/") or Path(target).is_absolute():
                 return None
             source = Path(target)
