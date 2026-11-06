@@ -88,7 +88,7 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 <table><thead><tr><th>Output</th><th>Description</th></tr></thead><tbody><tr><td><code>page-url</code></td><td>URL of the GitHub Pages site (empty when <code>deploy</code> is <code>"false"</code>).</td></tr><tr><td><code>site-dir</code></td><td>Directory containing the generated <code>index.html</code>.</td></tr></tbody></table>
 <h2 id="accepted-input-formats">Accepted input formats<a class="anchor" href="#accepted-input-formats" aria-label="Copy link to this section">#</a></h2>
 <p>Format detection is automatic:</p>
-<ol><li>**<code>tofu output -json</code> / <code>terraform output -json</code>**: each output wrapped</li></ol>
+<ol><li><strong><code>tofu output -json</code> / <code>terraform output -json</code></strong>: each output wrapped</li></ol>
 <p>in <code>{"value": …, "type": …, "sensitive": …}</code>. Sensitive outputs are masked.</p>
 <ol><li><strong>Plain map</strong>: <code>{"name": value, …}</code>, as written by the</li></ol>
 <p><code>json_output_path</code> file from <code>dflook/terraform-output</code>.</p>
