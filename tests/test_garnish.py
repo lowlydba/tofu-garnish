@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from urllib.parse import quote
 
 import pytest
 
@@ -1179,6 +1180,89 @@ def test_docs_links_without_source_url_stay_as_written(tmp_path, monkeypatch):
     page = (tmp_path / "site" / "docs" / "a" / "index.html").read_text(encoding="utf-8")
     assert 'href="../README.md"' in page
     assert 'href="../../x.md"' in page
+
+
+def test_docs_images_render_and_resolve(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "docs" / "sub").mkdir(parents=True)
+    (tmp_path / "images").mkdir()
+    (tmp_path / "images" / "arch one.png").write_bytes(b"png")
+    (tmp_path / "docs" / "local.svg").write_text("<svg/>", encoding="utf-8")
+    (tmp_path / "secret.txt").write_text("s", encoding="utf-8")
+    abs_image = quote((tmp_path / "images" / "arch one.png").as_posix(), safe="")
+    (tmp_path / "docs" / "a.md").write_text(
+        "![Arch *x*](../images/arch%20one.png) ![l](local.svg) [![b](local.svg)](other.md)\n"
+        "![gone](missing.png) ![txt](../secret.txt) ![out](../../x.png) ![r](https://e.io/a.png)"
+        ' ![bad](javascript:alert(1)) ![q](local.svg "t") ![`x`](local.svg)\n'
+        "![v](../images/arch%20one.png?v=1) ![m](missing.png?v=2) `![c](local.svg)`\n"
+        f"![abs]({abs_image})\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "docs" / "sub" / "b.md").write_text("![l](../local.svg)\n", encoding="utf-8")
+    outputs = tmp_path / "o.json"
+    outputs.write_text('{"a": "1"}', encoding="utf-8")
+    argv = ["--output-dir", "site", "--docs-dir", "docs", "--input", str(outputs)]
+    assert garnish.main([*argv, "--source-url", "https://gh.io/o/r"]) == 0
+    site = tmp_path / "site" / "docs"
+    page = (site / "a" / "index.html").read_text(encoding="utf-8")
+    assert '<img src="../.assets/images/arch%20one.png" alt="Arch *x*" loading="lazy">' in page
+    assert (
+        '<a href="https://gh.io/o/r/blob/HEAD/docs/other.md"><img src="../.assets/docs/local.svg"'
+        in page
+    )
+    assert (site / ".assets" / "images" / "arch one.png").read_bytes() == b"png"
+    assert (site / ".assets" / "docs" / "local.svg").exists()
+    assert 'src="https://gh.io/o/r/raw/HEAD/docs/missing.png"' in page
+    assert 'src="https://gh.io/o/r/raw/HEAD/secret.txt"' in page
+    assert not (site / ".assets" / "secret.txt").exists()
+    assert 'src="../../x.png"' in page
+    assert 'src="https://e.io/a.png"' in page
+    assert 'src="#" alt="bad"' in page
+    assert '<img src="../.assets/docs/local.svg" alt="q" loading="lazy">' in page
+    assert '<img src="../.assets/docs/local.svg" alt="x" loading="lazy">' in page
+    assert 'src="../.assets/images/arch%20one.png?v=1"' in page
+    assert 'src="https://gh.io/o/r/raw/HEAD/docs/missing.png?v=2"' in page
+    assert "<code>![c](local.svg)</code>" in page
+    assert 'alt="abs"' in page
+    assert "!<a" not in page
+    nested = (site / "sub" / "b" / "index.html").read_text(encoding="utf-8")
+    assert 'src="../../.assets/docs/local.svg"' in nested
+
+
+def test_docs_image_symlink_to_non_image_is_not_copied(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "secret.txt").write_text("s", encoding="utf-8")
+    try:
+        (tmp_path / "docs" / "leak.svg").symlink_to(tmp_path / "secret.txt")
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    (tmp_path / "docs" / "a.md").write_text("![l](leak.svg)", encoding="utf-8")
+    outputs = tmp_path / "o.json"
+    outputs.write_text('{"a": "1"}', encoding="utf-8")
+    argv = ["--output-dir", "site", "--docs-dir", "docs", "--input", str(outputs)]
+    assert garnish.main([*argv, "--source-url", "https://gh.io/o/r"]) == 0
+    assert not (tmp_path / "site" / "docs" / ".assets").exists()
+    page = (tmp_path / "site" / "docs" / "a" / "index.html").read_text(encoding="utf-8")
+    assert 'src="https://gh.io/o/r/raw/HEAD/docs/leak.svg"' in page
+
+
+def test_docs_images_without_source_url_stay_as_written(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "a.md").write_text("![m](missing.png) <b>", encoding="utf-8")
+    outputs = tmp_path / "o.json"
+    outputs.write_text('{"a": "1"}', encoding="utf-8")
+    argv = ["--output-dir", "site", "--docs-dir", "docs", "--input", str(outputs)]
+    assert garnish.main(argv) == 0
+    page = (tmp_path / "site" / "docs" / "a" / "index.html").read_text(encoding="utf-8")
+    assert 'src="missing.png"' in page
+
+
+def test_render_markdown_images_without_resolver():
+    html = garnish.render_markdown('![a "b"](x/y.md) ![<s>](z.png)')
+    assert '<img src="x/y.md" alt="a &quot;b&quot;" loading="lazy">' in html
+    assert 'alt="&lt;s&gt;"' in html
 
 
 def test_docs_dir_missing_and_clashing(tmp_path, monkeypatch, capsys):

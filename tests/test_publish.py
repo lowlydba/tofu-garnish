@@ -24,6 +24,7 @@ class FakeApi:
         self.page_url = page_url
         self.calls = []
         self.trees = {}
+        self.blobs = []
         self.commits = {}
         self.pushed = []
 
@@ -41,6 +42,9 @@ class FakeApi:
             return {"content": base64.b64encode(self.manifest.encode()).decode()}
         if method == "GET" and "/git/commits/" in path:
             return {"tree": {"sha": "basetree-" + path.rsplit("/", 1)[1]}}
+        if method == "POST" and path.endswith("/git/blobs"):
+            self.blobs.append(payload)
+            return {"sha": f"blob{len(self.blobs)}"}
         if method == "POST" and path.endswith("/git/trees"):
             sha = f"tree{len(self.trees)}"
             self.trees[sha] = payload
@@ -287,6 +291,22 @@ class TestPublish:
             "prod/index.html",
             "prod/outputs.json",
         ]
+
+    def test_binary_files_upload_as_blobs(self, env, monkeypatch, tmp_path):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "docs").mkdir()
+        (tmp_path / "docs" / "a.md").write_text("![d](pic.png)\n", encoding="utf-8")
+        (tmp_path / "docs" / "pic.png").write_bytes(b"\x89PNG\r\n\x1a\n\xff\xfe")
+        monkeypatch.setenv("GARNISH_OUTPUTS_FILE", str(FIXTURES / "tofu_output_json.json"))
+        monkeypatch.setenv("GARNISH_DOCS_DIR", "docs")
+        api = FakeApi(tip=None)
+        assert run_publish(api=api, sleep=lambda _: None) == 0
+        assert len(api.blobs) == 1
+        assert api.blobs[0]["encoding"] == "base64"
+        entry = next(e for e in api.last_tree["tree"] if e["path"].endswith("pic.png"))
+        assert entry["path"] == "docs/.assets/docs/pic.png"
+        assert entry["sha"] == "blob1"
+        assert "content" not in entry
 
     def test_discrete_update_merges_remote_manifest(self, env, monkeypatch):
         monkeypatch.setenv(

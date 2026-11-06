@@ -45,7 +45,8 @@ inputs:
     description: >-
       Directory of Markdown files (e.g. `docs`) rendered as plain docs pages
       under /docs/<name>/ and linked from the landing page and every output
-      page. Relative `other.md` links between pages are rewritten. When
+      page. Relative `other.md` links between pages are rewritten, and
+      images inside the repository are copied into the site. When
       omitted in a workspaces deploy, docs from earlier deploys are kept.
     required: false
     default: ""
