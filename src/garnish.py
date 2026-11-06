@@ -548,7 +548,11 @@ _SAFE_SCHEME = re.compile(r"^(https?|mailto):", re.I)
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 _ANY_SCHEME = re.compile(r"^[a-z][a-z0-9+.-]*:", re.I)
 _MD_LINK = re.compile(r"\[([^\]]+)\]\(([^)\s]+)\)")
-_MD_IMAGE = re.compile(r"!\[([^\]]*)\]\(([^)\s]+)\)")
+_MD_TITLE = r"""(?:\s+(?:"[^"]*"|'[^']*'))?"""
+_MD_IMAGE = rf"!\[((?:[^\]`]|`[^`]*`)*)\]\(([^)\s]+){_MD_TITLE}\)"
+# Code spans and images are matched together, leftmost first, so image syntax
+# inside a code span stays literal and backticks inside alt text stay intact.
+_MD_TOKEN = re.compile(rf"(`[^`]+`)|{_MD_IMAGE}")
 _IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".avif"}
 ASSETS_DIR = ".assets"
 _MD_SEPARATOR = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$")
@@ -578,36 +582,32 @@ def _md_href(href: str, resolve=None, image: bool = False) -> str:
     return path + hash_ + frag
 
 
-def _md_img(match: re.Match, resolve=None) -> str:
-    src = html.escape(_md_href(html.unescape(match[2]), resolve, image=True))
-    alt = html.escape(html.unescape(match[1]))
+def _md_img(alt: str, src: str, resolve=None) -> str:
+    src = html.escape(_md_href(html.unescape(src), resolve, image=True))
+    alt = html.escape(html.unescape(alt).replace("`", ""))
     return f'<img src="{src}" alt="{alt}" loading="lazy">'
-
-
-def _stash_img(match: re.Match, images: list[str], resolve=None) -> str:
-    images.append(_md_img(match, resolve))
-    return f"\x00{len(images) - 1}\x00"
 
 
 def _md_inline(text: str, resolve=None) -> str:
     """Render inline Markdown: code, images, links, bold, italic. Input is escaped first."""
-    parts = re.split(r"(`[^`]+`)", html.escape(text.replace("\x00", ""), quote=False))
-    out = []
-    for part in parts:
-        if part.startswith("`") and part.endswith("`") and len(part) > 2:
-            out.append(f"<code>{part[1:-1]}</code>")
-            continue
-        # Images are stashed so emphasis markers in alt or src never reach the tag.
-        images: list[str] = []
-        part = _MD_IMAGE.sub(lambda m, imgs=images: _stash_img(m, imgs, resolve), part)
-        part = _MD_LINK.sub(
-            lambda m: f'<a href="{html.escape(_md_href(html.unescape(m[2]), resolve))}">{m[1]}</a>',
-            part,
-        )
-        part = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", part)
-        part = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<em>\1</em>", part)
-        out.append(re.sub(r"\x00(\d+)\x00", lambda m, imgs=images: imgs[int(m[1])], part))
-    return "".join(out)
+    stash: list[str] = []
+
+    def hold(match: re.Match) -> str:
+        if match[1]:
+            stash.append(f"<code>{match[1][1:-1]}</code>")
+        else:
+            stash.append(_md_img(match[2], match[3], resolve))
+        return f"\x00{len(stash) - 1}\x00"
+
+    # Stashed so link, bold and italic markers never reach code or <img> attributes.
+    text = _MD_TOKEN.sub(hold, html.escape(text.replace("\x00", ""), quote=False))
+    text = _MD_LINK.sub(
+        lambda m: f'<a href="{html.escape(_md_href(html.unescape(m[2]), resolve))}">{m[1]}</a>',
+        text,
+    )
+    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+    text = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<em>\1</em>", text)
+    return re.sub(r"\x00(\d+)\x00", lambda m: stash[int(m[1])], text)
 
 
 def _md_cells(line: str) -> list[str]:
@@ -811,8 +811,10 @@ def _build_docs(docs_dir: str, out_dir: Path, args: argparse.Namespace) -> list[
         base = posixpath.dirname(repo_path)
         up = "../" * depth
 
-        def resolve_image(target: str) -> str | None:
-            if target.startswith(".."):
+        def resolve_image(link: str) -> str | None:
+            path, query_sep, query = link.partition("?")
+            target = posixpath.normpath(posixpath.join(base, unquote(path)))
+            if target.startswith("..") or target.startswith("/") or Path(target).is_absolute():
                 return None
             source = Path(target)
             if (
@@ -823,16 +825,16 @@ def _build_docs(docs_dir: str, out_dir: Path, args: argparse.Namespace) -> list[
                 dest = docs_out / ASSETS_DIR / target
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source, dest)
-                return f"{up}../{ASSETS_DIR}/{quote(target)}"
+                return f"{up}../{ASSETS_DIR}/{quote(target)}{query_sep}{query}"
             if args.source_url:
-                return f"{args.source_url.rstrip('/')}/raw/HEAD/{quote(target)}"
+                return f"{args.source_url.rstrip('/')}/raw/HEAD/{quote(target)}{query_sep}{query}"
             return None
 
         def resolve(link: str, image: bool = False) -> str | None:
+            if image:
+                return resolve_image(link)
             target = posixpath.normpath(posixpath.join(base, link))
             decoded = posixpath.normpath(posixpath.join(base, unquote(link)))
-            if image:
-                return resolve_image(decoded)
             if decoded in known:
                 return f"{up}../{known[decoded]}/"
             if args.source_url and not target.startswith(".."):

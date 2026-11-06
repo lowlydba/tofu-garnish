@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from urllib.parse import quote
 
 import pytest
 
@@ -1188,10 +1189,13 @@ def test_docs_images_render_and_resolve(tmp_path, monkeypatch):
     (tmp_path / "images" / "arch one.png").write_bytes(b"png")
     (tmp_path / "docs" / "local.svg").write_text("<svg/>", encoding="utf-8")
     (tmp_path / "secret.txt").write_text("s", encoding="utf-8")
+    abs_image = quote((tmp_path / "images" / "arch one.png").as_posix(), safe="")
     (tmp_path / "docs" / "a.md").write_text(
         "![Arch *x*](../images/arch%20one.png) ![l](local.svg) [![b](local.svg)](other.md)\n"
         "![gone](missing.png) ![txt](../secret.txt) ![out](../../x.png) ![r](https://e.io/a.png)"
-        ' ![bad](javascript:alert(1)) ![q](local.svg "t") ![`x`](local.svg)\n',
+        ' ![bad](javascript:alert(1)) ![q](local.svg "t") ![`x`](local.svg)\n'
+        "![v](../images/arch%20one.png?v=1) ![m](missing.png?v=2) `![c](local.svg)`\n"
+        f"![abs]({abs_image})\n",
         encoding="utf-8",
     )
     (tmp_path / "docs" / "sub" / "b.md").write_text("![l](../local.svg)\n", encoding="utf-8")
@@ -1214,6 +1218,12 @@ def test_docs_images_render_and_resolve(tmp_path, monkeypatch):
     assert 'src="../../x.png"' in page
     assert 'src="https://e.io/a.png"' in page
     assert 'src="#" alt="bad"' in page
+    assert '<img src="../.assets/docs/local.svg" alt="q" loading="lazy">' in page
+    assert '<img src="../.assets/docs/local.svg" alt="x" loading="lazy">' in page
+    assert 'src="../.assets/images/arch%20one.png?v=1"' in page
+    assert 'src="https://gh.io/o/r/raw/HEAD/docs/missing.png?v=2"' in page
+    assert "<code>![c](local.svg)</code>" in page
+    assert 'alt="abs"' in page
     assert "!<a" not in page
     nested = (site / "sub" / "b" / "index.html").read_text(encoding="utf-8")
     assert 'src="../../.assets/docs/local.svg"' in nested
