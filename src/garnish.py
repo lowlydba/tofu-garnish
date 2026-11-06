@@ -817,10 +817,12 @@ def _build_docs(docs_dir: str, out_dir: Path, args: argparse.Namespace) -> list[
             if target.startswith("..") or target.startswith("/") or Path(target).is_absolute():
                 return None
             source = Path(target)
+            real = source.resolve()
             if (
                 source.suffix.lower() in _IMAGE_SUFFIXES
+                and real.suffix.lower() in _IMAGE_SUFFIXES
                 and source.is_file()
-                and source.resolve().is_relative_to(Path.cwd().resolve())
+                and real.is_relative_to(Path.cwd().resolve())
             ):
                 dest = docs_out / ASSETS_DIR / target
                 dest.parent.mkdir(parents=True, exist_ok=True)

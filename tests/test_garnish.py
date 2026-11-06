@@ -1229,6 +1229,24 @@ def test_docs_images_render_and_resolve(tmp_path, monkeypatch):
     assert 'src="../../.assets/docs/local.svg"' in nested
 
 
+def test_docs_image_symlink_to_non_image_is_not_copied(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "secret.txt").write_text("s", encoding="utf-8")
+    try:
+        (tmp_path / "docs" / "leak.svg").symlink_to(tmp_path / "secret.txt")
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    (tmp_path / "docs" / "a.md").write_text("![l](leak.svg)", encoding="utf-8")
+    outputs = tmp_path / "o.json"
+    outputs.write_text('{"a": "1"}', encoding="utf-8")
+    argv = ["--output-dir", "site", "--docs-dir", "docs", "--input", str(outputs)]
+    assert garnish.main([*argv, "--source-url", "https://gh.io/o/r"]) == 0
+    assert not (tmp_path / "site" / "docs" / ".assets").exists()
+    page = (tmp_path / "site" / "docs" / "a" / "index.html").read_text(encoding="utf-8")
+    assert 'src="https://gh.io/o/r/raw/HEAD/docs/leak.svg"' in page
+
+
 def test_docs_images_without_source_url_stay_as_written(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "docs").mkdir()
