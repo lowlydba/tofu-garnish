@@ -164,16 +164,27 @@ def _site_prefix() -> str:
     return "/".join(parts)
 
 
-def _collect_files(site_dir: Path, prefix: str = "") -> list[dict]:
+def _blob_entry(api, repo: str, path: Path, tree_path: str) -> dict:
+    """Tree entry for ``path``: inline text, or an uploaded blob for binary files."""
+    entry = {"path": tree_path, "mode": "100644", "type": "blob"}
+    data = path.read_bytes()
+    try:
+        entry["content"] = data.decode("utf-8")
+    except UnicodeDecodeError:
+        blob = api(
+            "POST",
+            f"/repos/{repo}/git/blobs",
+            {"content": base64.b64encode(data).decode("ascii"), "encoding": "base64"},
+        )
+        entry["sha"] = blob["sha"]
+    return entry
+
+
+def _collect_files(api, repo: str, site_dir: Path, prefix: str = "") -> list[dict]:
     """Build Git tree entries for every file under ``site_dir``."""
     base = f"{prefix}/" if prefix else ""
     return [
-        {
-            "path": base + path.relative_to(site_dir).as_posix(),
-            "mode": "100644",
-            "type": "blob",
-            "content": path.read_text(encoding="utf-8"),
-        }
+        _blob_entry(api, repo, path, base + path.relative_to(site_dir).as_posix())
         for path in sorted(site_dir.rglob("*"))
         if path.is_file()
     ]
@@ -225,7 +236,7 @@ def publish(api=None, sleep=None) -> int:
         generate_site(str(site_dir))
         (site_dir / ".nojekyll").write_text("", encoding="utf-8")
         _set_output("site-dir", str(site_dir))
-        entries = _collect_files(site_dir, prefix)
+        entries = _collect_files(api, repo, site_dir, prefix)
         if prefix:
             # Pages only honors .nojekyll at the publishing root.
             entries.append({"path": ".nojekyll", "mode": "100644", "type": "blob", "content": ""})
