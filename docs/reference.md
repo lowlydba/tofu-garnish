@@ -77,6 +77,14 @@ contract:
   machine-readable output are an automation trap.
 * Pretty-printed, UTF-8, trailing newline.
 
+## Change detection (show-changes)
+
+With `show-changes: "true"` (CLI: `--previous-dir DIR`, a directory laid out like the site that holds the previous `outputs.json`), each page is compared with the previous publish:
+
+* An output not in the previous `outputs.json` is "created"; one whose value differs is "updated"; one that is gone is listed as "destroyed".
+* Sensitive outputs are never compared by value. Their names are recorded in `.garnish-state.json` next to `outputs.json`, which the next publish reads. It's internal state, not a supported interface, and its shape can change.
+* With no previous `outputs.json`, nothing is flagged.
+
 ## Workflow requirements (when deploying)
 
 * Job permission `contents: write` (or a `github-token` that has it).
@@ -95,6 +103,8 @@ usage: garnish [-h] [--input INPUT] [--workspace NAME=PATH] [--merge]
                 plain {"name": "description"} map); rendered under each
                 output. OpenTofu only.
 --merge       Preserve workspaces recorded in the output dir's manifest.json.
+--previous-dir  Directory holding the previous publish's outputs.json; flags
+                outputs created, updated or destroyed since then.
 --output-dir  Directory to write the site into (default: site).
 --title       Page title (default: 'Tofu Outputs').
 ```

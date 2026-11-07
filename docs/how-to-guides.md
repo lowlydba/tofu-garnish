@@ -117,6 +117,19 @@ shape is documented in
 [Reference](reference.md#machine-readable-outputsjson). Don't want it? Set
 the `outputs-json` input to `"false"`.
 
+## Show what changed since the last publish
+
+Set `show-changes: "true"` and each page compares its outputs with the `outputs.json` already on the Pages branch. Outputs that are new get a "created" pill, changed values get "updated", and outputs that disappeared get a "destroyed" card at the bottom. The meta line gains an "N outputs changed" count.
+
+```yaml
+      - uses: lowlydba/tofu-garnish@v1
+        with:
+          outputs-file: outputs.json
+          show-changes: "true"
+```
+
+The comparison is against the previous publish only, so it shows differences between publishes, not exact apply times. The first publish has nothing to compare against and shows no pills. Sensitive outputs are compared by name only, never by value. This needs `outputs-json` left on.
+
 ## Generate the HTML without deploying
 
 Set `deploy: "false"` and do whatever you like with the site directory:
