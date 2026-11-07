@@ -50,6 +50,13 @@ button.copy:hover { color: inherit; }
 button.copy svg { display: block; }
 .empty, .null { color: var(--muted); font-style: italic; }
 .sensitive { color: var(--muted); }
+.badge { display: inline-flex; align-items: center; height: 1.2rem; font-size: 0.7rem; font-weight: normal; line-height: 1; margin-left: 0.4rem; border: 1px solid var(--accent); color: var(--accent); border-radius: 999px; padding: 0 0.55rem 0.1rem; vertical-align: middle; cursor: help; }
+.badge.modified { border-color: #bf8700; color: #9a6700; }
+@media (prefers-color-scheme: dark) { .badge.modified { border-color: #d29922; color: #d29922; } }
+.badge.destroyed { border-color: #b35a5a; color: #b35a5a; }
+section.removed { border: 1px dotted var(--muted); border-radius: 6px; padding: 0.75rem 1rem; margin: 0.75rem 0; cursor: help; }
+section.removed h2 { margin: 0; font-size: 1.05rem; color: var(--muted); }
+@media (prefers-color-scheme: dark) { .badge.destroyed { border-color: #c27d7d; color: #c27d7d; } }
 footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
 .back { margin: 0 0 0.25rem; font-size: 0.9rem; }
 .back a, .ws h2 a, a.src { color: var(--accent); text-decoration: none; }
@@ -88,6 +95,8 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 <article class="doc">
 <p><a href="../tutorial/">Tutorial</a> · <a href="../how-to-guides/">How-to guides</a> · <a href="../reference/">Reference</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
 <h1 id="explanation">Explanation<a class="anchor" href="#explanation" aria-label="Copy link to this section">#</a></h1>
+<p>On this page:</p>
+<ul><li><a href="#why-does-this-exist">Why does this exist?</a></li><li><a href="#why-not-just-publish-the-json">Why not just publish the JSON?</a></li><li><a href="#why-a-pages-branch-instead-of-deploy-pages-artifacts">Why a Pages branch instead of <code>deploy-pages</code> artifacts?</a></li><li><a href="#why-opentofu-only-for-descriptions">Why "OpenTofu only" for descriptions?</a></li><li><a href="#how-are-sensitive-values-handled">How are sensitive values handled?</a></li><li><a href="#security-posture">Security posture</a></li></ul>
 <h2 id="why-does-this-exist">Why does this exist?<a class="anchor" href="#why-does-this-exist" aria-label="Copy link to this section">#</a></h2>
 <p>Complex, dynamic Tofu configurations are great for platform teams and terrible as a lookup surface. When an application engineer just needs the queue ARN or the VPC ID, "clone the repo, init the backend, run <code>tofu output</code>" is a lot of ceremony. tofu-garnish gives outputs a stable, human-readable URL that is regenerated on every apply.</p>
 <h2 id="why-not-just-publish-the-json">Why not just publish the JSON?<a class="anchor" href="#why-not-just-publish-the-json" aria-label="Copy link to this section">#</a></h2>

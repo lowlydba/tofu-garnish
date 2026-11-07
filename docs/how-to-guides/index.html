@@ -50,6 +50,13 @@ button.copy:hover { color: inherit; }
 button.copy svg { display: block; }
 .empty, .null { color: var(--muted); font-style: italic; }
 .sensitive { color: var(--muted); }
+.badge { display: inline-flex; align-items: center; height: 1.2rem; font-size: 0.7rem; font-weight: normal; line-height: 1; margin-left: 0.4rem; border: 1px solid var(--accent); color: var(--accent); border-radius: 999px; padding: 0 0.55rem 0.1rem; vertical-align: middle; cursor: help; }
+.badge.modified { border-color: #bf8700; color: #9a6700; }
+@media (prefers-color-scheme: dark) { .badge.modified { border-color: #d29922; color: #d29922; } }
+.badge.destroyed { border-color: #b35a5a; color: #b35a5a; }
+section.removed { border: 1px dotted var(--muted); border-radius: 6px; padding: 0.75rem 1rem; margin: 0.75rem 0; cursor: help; }
+section.removed h2 { margin: 0; font-size: 1.05rem; color: var(--muted); }
+@media (prefers-color-scheme: dark) { .badge.destroyed { border-color: #c27d7d; color: #c27d7d; } }
 footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
 .back { margin: 0 0 0.25rem; font-size: 0.9rem; }
 .back a, .ws h2 a, a.src { color: var(--accent); text-decoration: none; }
@@ -88,6 +95,8 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 <article class="doc">
 <p><a href="../tutorial/">Tutorial</a> · <a href="../reference/">Reference</a> · <a href="../explanation/">Explanation</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
 <h1 id="how-to-guides">How-to guides<a class="anchor" href="#how-to-guides" aria-label="Copy link to this section">#</a></h1>
+<p>On this page:</p>
+<ul><li><a href="#publish-multiple-workspaces-accounts-or-tenants">Publish multiple workspaces, accounts, or tenants</a></li><li><a href="#update-one-workspace-without-touching-the-others">Update one workspace without touching the others</a></li><li><a href="#show-output-descriptions-on-the-page-opentofu-only">Show output descriptions on the page (OpenTofu only)</a></li><li><a href="#use-it-without-dflook-actions">Use it without dflook actions</a></li><li><a href="#pass-outputs-inline-instead-of-a-file">Pass outputs inline instead of a file</a></li><li><a href="#consume-outputs-from-scripts-and-other-pipelines">Consume outputs from scripts and other pipelines</a></li><li><a href="#show-what-changed-since-the-last-publish">Show what changed since the last publish</a></li><li><a href="#publish-a-preview-for-each-pull-request">Publish a preview for each pull request</a></li><li><a href="#generate-the-html-without-deploying">Generate the HTML without deploying</a></li><li><a href="#run-the-generator-locally">Run the generator locally</a></li></ul>
 <h2 id="publish-multiple-workspaces-accounts-or-tenants">Publish multiple workspaces, accounts, or tenants<a class="anchor" href="#publish-multiple-workspaces-accounts-or-tenants" aria-label="Copy link to this section">#</a></h2>
 <p>Use the <code>workspaces</code> input, one <code>name=path</code> pair per line. Each workspace gets its own page under <code>/&lt;name&gt;/</code>, plus a landing page linking them all. The landing page lists workspaces most recently updated first, each with a relative age ("updated 3 days ago"):</p>
 <pre><code>      - uses: lowlydba/tofu-garnish@v1
@@ -142,6 +151,63 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 <pre><code>$ curl -s https://org.github.io/infra/prod-eu/outputs.json | jq -r .vpc_id
 vpc-01463b6b84e1454ce</code></pre>
 <p>Single-workspace sites serve it at the site root (<code>/outputs.json</code>). The shape is documented in <a href="../reference/#machine-readable-outputsjson">Reference</a>. Don't want it? Set the <code>outputs-json</code> input to <code>"false"</code>.</p>
+<h2 id="show-what-changed-since-the-last-publish">Show what changed since the last publish<a class="anchor" href="#show-what-changed-since-the-last-publish" aria-label="Copy link to this section">#</a></h2>
+<p>Set <code>show-changes: "true"</code> and each page compares its outputs with the <code>outputs.json</code> already on the Pages branch. Outputs that are new get a "created" pill, changed values get "updated", and outputs that disappeared get a "destroyed" card at the bottom. The meta line gains an "N outputs changed" count.</p>
+<pre><code>      - uses: lowlydba/tofu-garnish@v1
+        with:
+          outputs-file: outputs.json
+          show-changes: &quot;true&quot;</code></pre>
+<p>The comparison is against the previous publish only, so it shows differences between publishes, not exact apply times. The first publish has nothing to compare against and shows no pills. Sensitive outputs are compared by name only, never by value. This needs <code>outputs-json</code> left on.</p>
+<h2 id="publish-a-preview-for-each-pull-request">Publish a preview for each pull request<a class="anchor" href="#publish-a-preview-for-each-pull-request" aria-label="Copy link to this section">#</a></h2>
+<p>Publish every pull request to its own folder on the Pages branch and delete it when the PR closes. Other files on the branch are untouched, so previews sit next to your real site.</p>
+<p>Publish on each push:</p>
+<pre><code>name: Preview
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: tofu-garnish-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    # Fork tokens can&#x27;t push to the Pages branch
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # ...plan or apply your staging config and write outputs.json
+      - uses: lowlydba/tofu-garnish@v1
+        id: garnish
+        with:
+          outputs-file: outputs.json
+          title: Preview (PR ${{ github.event.pull_request.number }})
+          site-path: pr-preview/${{ github.event.pull_request.number }}
+          show-changes: &quot;true&quot;</code></pre>
+<p>Remove it when the PR closes, with no path filter so cleanup always runs:</p>
+<pre><code>name: Preview cleanup
+on:
+  pull_request:
+    types: [closed]
+
+concurrency:
+  group: tofu-garnish-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: lowlydba/tofu-garnish@v1
+        with:
+          remove: &quot;true&quot;
+          site-path: pr-preview/${{ github.event.pull_request.number }}</code></pre>
+<ul><li>Both workflows share a concurrency group per PR number, so a cleanup never races a late publish.</li><li>The <code>page-url</code> output is the preview's URL; post it with <code>gh pr comment --edit-last --create-if-none</code> to keep a single comment per PR.</li><li>With <code>show-changes</code>, each push is compared with the previous push of the same preview, so reviewers see what moved since the last build.</li><li>This repository runs exactly this setup: see <code>.github/workflows/preview.yml</code> and <code>.github/workflows/preview-cleanup.yml</code>.</li></ul>
 <h2 id="generate-the-html-without-deploying">Generate the HTML without deploying<a class="anchor" href="#generate-the-html-without-deploying" aria-label="Copy link to this section">#</a></h2>
 <p>Set <code>deploy: "false"</code> and do whatever you like with the site directory: upload it elsewhere, attach it as an artifact, or serve it from another host.</p>
 <pre><code>      - uses: lowlydba/tofu-garnish@v1

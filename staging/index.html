@@ -50,6 +50,13 @@ button.copy:hover { color: inherit; }
 button.copy svg { display: block; }
 .empty, .null { color: var(--muted); font-style: italic; }
 .sensitive { color: var(--muted); }
+.badge { display: inline-flex; align-items: center; height: 1.2rem; font-size: 0.7rem; font-weight: normal; line-height: 1; margin-left: 0.4rem; border: 1px solid var(--accent); color: var(--accent); border-radius: 999px; padding: 0 0.55rem 0.1rem; vertical-align: middle; cursor: help; }
+.badge.modified { border-color: #bf8700; color: #9a6700; }
+@media (prefers-color-scheme: dark) { .badge.modified { border-color: #d29922; color: #d29922; } }
+.badge.destroyed { border-color: #b35a5a; color: #b35a5a; }
+section.removed { border: 1px dotted var(--muted); border-radius: 6px; padding: 0.75rem 1rem; margin: 0.75rem 0; cursor: help; }
+section.removed h2 { margin: 0; font-size: 1.05rem; color: var(--muted); }
+@media (prefers-color-scheme: dark) { .badge.destroyed { border-color: #c27d7d; color: #c27d7d; } }
 footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
 .back { margin: 0 0 0.25rem; font-size: 0.9rem; }
 .back a, .ws h2 a, a.src { color: var(--accent); text-decoration: none; }
@@ -83,7 +90,7 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 <!-- 🌿 Psst, you found the garnish. View-source people are our favorite people. We hope you enjoy your tofu. 🧈 -->
 <header>
 <p class="back"><a href="../">← all workspaces</a></p><h1>tofu-garnish demo · staging</h1>
-<p>3 outputs · generated 2026-11-07 02:39 UTC · commit <a class="src" href="https://github.com/lowlydba/tofu-garnish/commit/161483acff5b6f7d2fe3684d1a0e30d069303be9">161483a</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish/actions/runs/42330337839">workflow run</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a> · <a class="src" href="outputs.json">JSON</a></p>
+<p>3 outputs · generated 2026-11-07 03:05 UTC · commit <a class="src" href="https://github.com/lowlydba/tofu-garnish/commit/d1dc8679843404bcf39369346d64682ff5c1b7a5">d1dc867</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish/actions/runs/42332366123">workflow run</a> · <a class="src" href="https://github.com/lowlydba/tofu-garnish">source repository</a> · <a class="src" href="outputs.json">JSON</a></p>
 <nav class="docs" aria-label="Documentation"><a href="../docs/">Docs (5)</a></nav>
 <input id="filter" type="search" placeholder="Filter outputs by name or value…" aria-label="Filter outputs by name or value">
 <p id="filter-status" class="sr-only" role="status"></p>
@@ -100,7 +107,7 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 (function () {
   var input = document.getElementById('filter');
   var announce = document.getElementById('filter-status');
-  var sections = document.querySelectorAll('section.output');
+  var sections = document.querySelectorAll('section.output, section.removed');
   input.addEventListener('input', function () {
     var q = this.value.trim().toLowerCase();
     var shown = 0;

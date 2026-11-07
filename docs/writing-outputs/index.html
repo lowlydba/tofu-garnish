@@ -50,6 +50,13 @@ button.copy:hover { color: inherit; }
 button.copy svg { display: block; }
 .empty, .null { color: var(--muted); font-style: italic; }
 .sensitive { color: var(--muted); }
+.badge { display: inline-flex; align-items: center; height: 1.2rem; font-size: 0.7rem; font-weight: normal; line-height: 1; margin-left: 0.4rem; border: 1px solid var(--accent); color: var(--accent); border-radius: 999px; padding: 0 0.55rem 0.1rem; vertical-align: middle; cursor: help; }
+.badge.modified { border-color: #bf8700; color: #9a6700; }
+@media (prefers-color-scheme: dark) { .badge.modified { border-color: #d29922; color: #d29922; } }
+.badge.destroyed { border-color: #b35a5a; color: #b35a5a; }
+section.removed { border: 1px dotted var(--muted); border-radius: 6px; padding: 0.75rem 1rem; margin: 0.75rem 0; cursor: help; }
+section.removed h2 { margin: 0; font-size: 1.05rem; color: var(--muted); }
+@media (prefers-color-scheme: dark) { .badge.destroyed { border-color: #c27d7d; color: #c27d7d; } }
 footer { margin-top: 2rem; color: var(--muted); font-size: 0.75rem; }
 .back { margin: 0 0 0.25rem; font-size: 0.9rem; }
 .back a, .ws h2 a, a.src { color: var(--accent); text-decoration: none; }
@@ -88,6 +95,8 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 <article class="doc">
 <p><a href="../tutorial/">Tutorial</a> · <a href="../how-to-guides/">How-to guides</a> · <a href="../reference/">Reference</a> · <a href="../explanation/">Explanation</a></p>
 <h1 id="writing-outputstf-for-a-good-garnish-page">Writing outputs.tf for a good garnish page<a class="anchor" href="#writing-outputstf-for-a-good-garnish-page" aria-label="Copy link to this section">#</a></h1>
+<p>On this page:</p>
+<ul><li><a href="#name-outputs-so-alphabetical-order-reads-well">Name outputs so alphabetical order reads well</a></li><li><a href="#always-set-description">Always set description</a></li><li><a href="#keep-sibling-objects-shape-uniform">Keep sibling objects shape-uniform</a></li><li><a href="#mark-sensitive-outputs-sensitive">Mark sensitive outputs sensitive</a></li><li><a href="#flatten-what-should-be-copy-button-friendly">Flatten what should be copy-button-friendly</a></li></ul>
 <p>This page is for whoever (or whatever) is authoring <code>outputs.tf</code>, not for consuming the action. Point an AI coding agent at it (link it from your repo's <code>AGENTS.md</code>/<code>CLAUDE.md</code>) when you want generated Tofu to render well on a tofu-garnish page instead of just being valid HCL.</p>
 <h2 id="name-outputs-so-alphabetical-order-reads-well">Name outputs so alphabetical order reads well<a class="anchor" href="#name-outputs-so-alphabetical-order-reads-well" aria-label="Copy link to this section">#</a></h2>
 <p>tofu-garnish has no grouping concept: outputs are rendered in a single list, sorted by name (<code>Output.name.lower()</code>). That sort order is the only structure the page has, so it doubles as the page's information architecture. Prefix related outputs consistently:</p>
