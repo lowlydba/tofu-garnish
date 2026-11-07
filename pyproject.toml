@@ -34,4 +34,5 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 # Long lines are embedded CSS/HTML template strings.
-"src/garnish.py" = ["E501"]
+"src/pages.py" = ["E501"]
+"src/tree.py" = ["E501"]
