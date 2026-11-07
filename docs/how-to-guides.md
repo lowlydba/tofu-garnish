@@ -132,7 +132,7 @@ the `outputs-json` input to `"false"`.
 
 ## Show what changed since the last publish
 
-Set `show-changes: "true"` and each page compares its outputs with the `outputs.json` already on the Pages branch. Outputs that are new get a "created" pill, changed values get "updated", and outputs that disappeared get a "destroyed" card at the bottom. The meta line gains an "N outputs changed" count.
+Set `show-changes: "true"` and each page compares its outputs with the `outputs.json` already on the Pages branch. New outputs get a "created" pill, changed values "updated", and removed ones a "destroyed" card at the bottom.
 
 ```yaml
       - uses: lowlydba/tofu-garnish@v1
@@ -141,7 +141,7 @@ Set `show-changes: "true"` and each page compares its outputs with the `outputs.
           show-changes: "true"
 ```
 
-The comparison is against the previous publish only, so it shows differences between publishes, not exact apply times. The first publish has nothing to compare against and shows no pills. Sensitive outputs are compared by name only, never by value. This needs `outputs-json` left on.
+The first publish shows no pills. Sensitive outputs are compared by name only. Needs `outputs-json` left on; details in the [Reference](reference.md#change-detection-show-changes).
 
 ## Publish a preview for each pull request
 
@@ -204,7 +204,6 @@ jobs:
 
 * Both workflows share a concurrency group per PR number, so a cleanup never races a late publish.
 * The `page-url` output is the preview's URL; post it with `gh pr comment --edit-last --create-if-none` to keep a single comment per PR.
-* With `show-changes`, each push is compared with the previous push of the same preview, so reviewers see what moved since the last build.
 * This repository runs exactly this setup: see `.github/workflows/preview.yml` and `.github/workflows/preview-cleanup.yml`.
 
 ## Generate the HTML without deploying
@@ -228,8 +227,7 @@ host.
 
 ## Run the generator locally
 
-The generator is a single stdlib-only Python script with no dependencies to
-install:
+The generator is stdlib-only Python with nothing to install:
 
 ```console
 $ tofu output -json | python3 src/garnish.py --title "My Stack" --output-dir site
@@ -237,16 +235,12 @@ garnish: wrote site/index.html (7 outputs)
 ```
 
 Multi-workspace sites work locally too, with `--workspace name=path`
-(repeatable) and `--merge` to preserve workspaces already in the output
-directory. Set `SOURCE_DATE_EPOCH` for a reproducible timestamp.
+(repeatable) and `--merge`. Set `SOURCE_DATE_EPOCH` for a reproducible
+timestamp. All flags are in the [CLI reference](reference.md#cli-reference).
 
-No infrastructure handy? The repo ships provider-less example configs that
-produce realistic outputs:
+No infrastructure handy? The repo ships provider-less example configs:
 
 ```console
 $ tofu -chdir=examples/demo init && tofu -chdir=examples/demo apply -auto-approve
 $ tofu -chdir=examples/demo output -json | python3 src/garnish.py --output-dir site
 ```
-
-CI applies these with real OpenTofu and runs the action on the result, and
-the demo workflow publishes them to this repo's Pages.
