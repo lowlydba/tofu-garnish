@@ -2,6 +2,17 @@
 
 # Reference
 
+On this page:
+
+- [Action inputs](#action-inputs)
+- [Action outputs](#action-outputs)
+- [Accepted input formats](#accepted-input-formats)
+- [Site structure (workspaces mode)](#site-structure-workspaces-mode)
+- [Machine-readable outputs.json](#machine-readable-outputsjson)
+- [Change detection (show-changes)](#change-detection-show-changes)
+- [Workflow requirements (when deploying)](#workflow-requirements-when-deploying)
+- [CLI reference](#cli-reference)
+
 ## Action inputs
 
 | Input          | Required | Default             | Description                                                                                                                                    |
@@ -18,6 +29,7 @@
 | `site-url`    | no       | none                | Public base URL when the site is served from a vanity domain (e.g. `https://labs.example.org/my-repo`). Adds "copy link" buttons that copy URLs under it instead of the browser's address. |
 | `footer`       | no       | `"true"`            | Render the "Served with 💚 by 🌿 tofu-garnish" footer (links to this repo) on generated pages. Set `"false"` to omit it.                          |
 | `outputs-json` | no       | `"true"`            | Write a machine-readable `outputs.json` next to each generated page (sensitive outputs omitted). Set `"false"` to publish HTML only.             |
+| `show-changes` | no       | `"false"`           | Badge outputs created or updated since the previous publish, list destroyed ones, and add an "N outputs changed" count. Compares against the `outputs.json` on the Pages branch, so it needs `outputs-json`. Differences are between publishes, not exact apply times. |
 | `output-dir`   | no       | `tofu-garnish-site` | Where the site is written when `deploy` is `"false"`.                                                                                            |
 | `deploy`       | no       | `"true"`            | Commit the site to the Pages branch. Set `"false"` to only generate HTML.                                                                        |
 | `pages-branch` | no       | `gh-pages`          | Branch GitHub Pages serves from. Created automatically if missing.                                                                               |
@@ -76,6 +88,14 @@ contract:
   machine-readable output are an automation trap.
 * Pretty-printed, UTF-8, trailing newline.
 
+## Change detection (show-changes)
+
+With `show-changes: "true"` (CLI: `--previous-dir DIR`, a directory laid out like the site that holds the previous `outputs.json`), each page is compared with the previous publish:
+
+* An output not in the previous `outputs.json` is "created"; one whose value differs is "updated"; one that is gone is listed as "destroyed".
+* Sensitive outputs are never compared by value. Their names are recorded in `.garnish-state.json` next to `outputs.json`, which the next publish reads. It's internal state, not a supported interface, and its shape can change.
+* With no previous `outputs.json`, nothing is flagged.
+
 ## Workflow requirements (when deploying)
 
 * Job permission `contents: write` (or a `github-token` that has it).
@@ -94,6 +114,8 @@ usage: garnish [-h] [--input INPUT] [--workspace NAME=PATH] [--merge]
                 plain {"name": "description"} map); rendered under each
                 output. OpenTofu only.
 --merge       Preserve workspaces recorded in the output dir's manifest.json.
+--previous-dir  Directory holding the previous publish's outputs.json; flags
+                outputs created, updated or destroyed since then.
 --output-dir  Directory to write the site into (default: site).
 --title       Page title (default: 'Tofu Outputs').
 ```

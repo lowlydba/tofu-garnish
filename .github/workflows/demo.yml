@@ -54,3 +54,4 @@ jobs:
           module-dir: examples/demo
           docs-dir: docs
           title: tofu-garnish demo
+          show-changes: "true"

@@ -83,6 +83,13 @@ inputs:
       page (sensitive outputs omitted). Set to "false" to publish HTML only.
     required: false
     default: "true"
+  show-changes:
+    description: >-
+      Flag outputs created, updated or destroyed since the previous publish
+      (compared against the outputs.json already on the Pages branch; requires
+      outputs-json). Sensitive outputs compare by name only. Off by default.
+    required: false
+    default: "false"
   output-dir:
     description: >-
       Directory the generated site is written to. Only used when deploy is
@@ -144,6 +151,7 @@ runs:
         GARNISH_SITE_URL: ${{ inputs.site-url }}
         GARNISH_FOOTER: ${{ inputs.footer }}
         GARNISH_OUTPUTS_JSON: ${{ inputs.outputs-json }}
+        GARNISH_SHOW_CHANGES: ${{ inputs.show-changes }}
         GARNISH_OUTPUT_DIR: ${{ inputs.output-dir }}
         GARNISH_DEPLOY: ${{ inputs.deploy }}
         GARNISH_TOKEN: ${{ inputs.github-token }}

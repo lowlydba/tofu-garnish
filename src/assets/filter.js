@@ -1,7 +1,7 @@
 (function () {
   var input = document.getElementById('filter');
   var announce = document.getElementById('filter-status');
-  var sections = document.querySelectorAll('section.output');
+  var sections = document.querySelectorAll('section.output, section.removed');
   input.addEventListener('input', function () {
     var q = this.value.trim().toLowerCase();
     var shown = 0;

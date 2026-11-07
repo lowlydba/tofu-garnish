@@ -23,6 +23,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote, unquote
 
+from changes import STATE_FILE, compute_changes, state_json
 from markdown import (
     _CONTROL_CHARS,
     _IMAGE_SUFFIXES,
@@ -246,6 +247,7 @@ def _run_single(args: argparse.Namespace) -> int:
         return 2
 
     out_dir = Path(args.output_dir)
+    changes = compute_changes(outputs, args.previous_dir) if args.previous_dir else None
     try:
         docs = _build_docs(args.docs_dir, out_dir, args) if args.docs_dir else []
     except ValueError as exc:
@@ -262,12 +264,14 @@ def _run_single(args: argparse.Namespace) -> int:
         provenance=provenance_from_env(),
         share_url=_share_base(args.site_url),
         docs=docs,
+        changes=changes,
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "index.html"
     out_file.write_text(render_page(page), encoding="utf-8")
     if not args.no_outputs_json:
         (out_dir / "outputs.json").write_text(outputs_json(outputs), encoding="utf-8")
+        (out_dir / STATE_FILE).write_text(state_json(outputs), encoding="utf-8")
     print(f"garnish: wrote {out_file} ({len(outputs)} outputs)")
     return 0
 
@@ -335,6 +339,9 @@ def _run_workspaces(args: argparse.Namespace) -> int:
         return 2
 
     for name, slug, outputs in workspaces:
+        changes = (
+            compute_changes(outputs, Path(args.previous_dir) / slug) if args.previous_dir else None
+        )
         page = Page(
             title=f"{args.title} · {name}",
             outputs=outputs,
@@ -346,12 +353,14 @@ def _run_workspaces(args: argparse.Namespace) -> int:
             provenance=provenance,
             share_url=f"{share_base}{slug}/" if share_base else "",
             docs=docs,
+            changes=changes,
         )
         ws_dir = out_dir / slug
         ws_dir.mkdir(parents=True, exist_ok=True)
         (ws_dir / "index.html").write_text(render_page(page), encoding="utf-8")
         if not args.no_outputs_json:
             (ws_dir / "outputs.json").write_text(outputs_json(outputs), encoding="utf-8")
+            (ws_dir / STATE_FILE).write_text(state_json(outputs), encoding="utf-8")
         merged[slug] = {
             "name": name,
             "outputs": len(outputs),
@@ -484,6 +493,16 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "Directory of Markdown files rendered as docs pages under "
             "/docs/<name>/ and linked from the landing page and every output page."
+        ),
+    )
+    parser.add_argument(
+        "--previous-dir",
+        default="",
+        metavar="DIR",
+        help=(
+            "Directory holding the previous publish's outputs.json (and "
+            ".garnish-state.json), laid out like the site. When set, outputs added, "
+            "modified or removed since then are flagged."
         ),
     )
     parser.add_argument("--version", action="version", version=__version__)

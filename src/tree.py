@@ -8,6 +8,13 @@ from urllib.parse import quote
 
 from model import CHECK_MARK, COPY_ICON, LINK_ICON, MASK, Output
 
+# Badge wording follows OpenTofu's plan vocabulary.
+_BADGE_LABELS = {"added": "created", "modified": "updated"}
+CHANGE_HINT = (
+    "Compared with the previous publish of this site. This shows differences between "
+    "publishes, not exact apply times: several applies may have happened in between."
+)
+
 
 def _esc(value: object) -> str:
     return html.escape(str(value), quote=True)
@@ -107,7 +114,7 @@ def _link_button(url: str, label: str, cls: str = "copy", done: str = "") -> str
     )
 
 
-def _render_output(output: Output, share_url: str = "") -> str:
+def _render_output(output: Output, share_url: str = "", change: str = "") -> str:
     if output.sensitive:
         body = f'<span class="sensitive"><span aria-hidden="true">{MASK}</span> <em>(sensitive)</em></span>'
         search = output.name.lower()
@@ -129,9 +136,14 @@ def _render_output(output: Output, share_url: str = "") -> str:
         if share_url
         else ""
     )
+    badge = (
+        f' <span class="badge {change}" title="{_esc(CHANGE_HINT)}">{_BADGE_LABELS[change]}</span>'
+        if change
+        else ""
+    )
     return (
         f'<section class="output" id="{_esc(output.name)}" '
         f'data-name="{_esc(output.name.lower())}" data-search="{_esc(search)}">'
-        f'<h2>{share}<a href="#{_esc(output.name)}">{_esc(output.name)}</a></h2>'
+        f'<h2>{share}<a href="#{_esc(output.name)}">{_esc(output.name)}</a>{badge}</h2>'
         f"{desc}{body}</section>"
     )

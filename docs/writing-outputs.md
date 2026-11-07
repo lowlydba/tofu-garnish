@@ -2,6 +2,14 @@
 
 # Writing outputs.tf for a good garnish page
 
+On this page:
+
+- [Name outputs so alphabetical order reads well](#name-outputs-so-alphabetical-order-reads-well)
+- [Always set description](#always-set-description)
+- [Keep sibling objects shape-uniform](#keep-sibling-objects-shape-uniform)
+- [Mark sensitive outputs sensitive](#mark-sensitive-outputs-sensitive)
+- [Flatten what should be copy-button-friendly](#flatten-what-should-be-copy-button-friendly)
+
 This page is for whoever (or whatever) is authoring `outputs.tf`, not for
 consuming the action. Point an AI coding agent at it (link it from your
 repo's `AGENTS.md`/`CLAUDE.md`) when you want generated Tofu to render well
