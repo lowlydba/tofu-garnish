@@ -95,6 +95,8 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 <article class="doc">
 <p><a href="../tutorial/">Tutorial</a> · <a href="../how-to-guides/">How-to guides</a> · <a href="../reference/">Reference</a> · <a href="../writing-outputs/">Writing outputs.tf</a></p>
 <h1 id="explanation">Explanation<a class="anchor" href="#explanation" aria-label="Copy link to this section">#</a></h1>
+<p>On this page:</p>
+<ul><li><a href="#why-does-this-exist">Why does this exist?</a></li><li><a href="#why-not-just-publish-the-json">Why not just publish the JSON?</a></li><li><a href="#why-a-pages-branch-instead-of-deploy-pages-artifacts">Why a Pages branch instead of <code>deploy-pages</code> artifacts?</a></li><li><a href="#why-opentofu-only-for-descriptions">Why "OpenTofu only" for descriptions?</a></li><li><a href="#how-are-sensitive-values-handled">How are sensitive values handled?</a></li><li><a href="#security-posture">Security posture</a></li></ul>
 <h2 id="why-does-this-exist">Why does this exist?<a class="anchor" href="#why-does-this-exist" aria-label="Copy link to this section">#</a></h2>
 <p>Complex, dynamic Tofu configurations are great for platform teams and terrible as a lookup surface. When an application engineer just needs the queue ARN or the VPC ID, "clone the repo, init the backend, run <code>tofu output</code>" is a lot of ceremony. tofu-garnish gives outputs a stable, human-readable URL that is regenerated on every apply.</p>
 <h2 id="why-not-just-publish-the-json">Why not just publish the JSON?<a class="anchor" href="#why-not-just-publish-the-json" aria-label="Copy link to this section">#</a></h2>
