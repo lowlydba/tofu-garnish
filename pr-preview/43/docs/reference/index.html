@@ -127,6 +127,9 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 <ul><li>Sensitive outputs are omitted entirely, not masked; placeholder strings in</li></ul>
 <p>machine-readable output are an automation trap.</p>
 <ul><li>Pretty-printed, UTF-8, trailing newline.</li></ul>
+<h2 id="change-detection-show-changes">Change detection (show-changes)<a class="anchor" href="#change-detection-show-changes" aria-label="Copy link to this section">#</a></h2>
+<p>With <code>show-changes: "true"</code> (CLI: <code>--previous-dir DIR</code>, a directory laid out like the site that holds the previous <code>outputs.json</code>), each page is compared with the previous publish:</p>
+<ul><li>An output not in the previous <code>outputs.json</code> is "created"; one whose value differs is "updated"; one that is gone is listed as "destroyed".</li><li>Sensitive outputs are never compared by value. Their names are recorded in <code>.garnish-state.json</code> next to <code>outputs.json</code>, which the next publish reads. It's internal state, not a supported interface, and its shape can change.</li><li>With no previous <code>outputs.json</code>, nothing is flagged.</li></ul>
 <h2 id="workflow-requirements-when-deploying">Workflow requirements (when deploying)<a class="anchor" href="#workflow-requirements-when-deploying" aria-label="Copy link to this section">#</a></h2>
 <ul><li>Job permission <code>contents: write</code> (or a <code>github-token</code> that has it).</li><li>GitHub Pages source set to <strong>Deploy from a branch</strong> → your <code>pages-branch</code>.</li><li>A shared <code>concurrency</code> group if multiple workflows may deploy at once.</li></ul>
 <h2 id="cli-reference">CLI reference<a class="anchor" href="#cli-reference" aria-label="Copy link to this section">#</a></h2>
@@ -139,6 +142,8 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
                 plain {&quot;name&quot;: &quot;description&quot;} map); rendered under each
                 output. OpenTofu only.
 --merge       Preserve workspaces recorded in the output dir&#x27;s manifest.json.
+--previous-dir  Directory holding the previous publish&#x27;s outputs.json; flags
+                outputs created, updated or destroyed since then.
 --output-dir  Directory to write the site into (default: site).
 --title       Page title (default: &#x27;Tofu Outputs&#x27;).</code></pre>
 <p>Exit codes: <code>0</code> success, <code>2</code> bad input (missing file, invalid JSON, non-object top level, bad workspace spec, or clashing workspace names).</p>

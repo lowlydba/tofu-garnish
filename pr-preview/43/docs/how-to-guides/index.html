@@ -149,6 +149,13 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 <pre><code>$ curl -s https://org.github.io/infra/prod-eu/outputs.json | jq -r .vpc_id
 vpc-01463b6b84e1454ce</code></pre>
 <p>Single-workspace sites serve it at the site root (<code>/outputs.json</code>). The shape is documented in <a href="../reference/#machine-readable-outputsjson">Reference</a>. Don't want it? Set the <code>outputs-json</code> input to <code>"false"</code>.</p>
+<h2 id="show-what-changed-since-the-last-publish">Show what changed since the last publish<a class="anchor" href="#show-what-changed-since-the-last-publish" aria-label="Copy link to this section">#</a></h2>
+<p>Set <code>show-changes: "true"</code> and each page compares its outputs with the <code>outputs.json</code> already on the Pages branch. Outputs that are new get a "created" pill, changed values get "updated", and outputs that disappeared get a "destroyed" card at the bottom. The meta line gains an "N outputs changed" count.</p>
+<pre><code>      - uses: lowlydba/tofu-garnish@v1
+        with:
+          outputs-file: outputs.json
+          show-changes: &quot;true&quot;</code></pre>
+<p>The comparison is against the previous publish only, so it shows differences between publishes, not exact apply times. The first publish has nothing to compare against and shows no pills. Sensitive outputs are compared by name only, never by value. This needs <code>outputs-json</code> left on.</p>
 <h2 id="generate-the-html-without-deploying">Generate the HTML without deploying<a class="anchor" href="#generate-the-html-without-deploying" aria-label="Copy link to this section">#</a></h2>
 <p>Set <code>deploy: "false"</code> and do whatever you like with the site directory: upload it elsewhere, attach it as an artifact, or serve it from another host.</p>
 <pre><code>      - uses: lowlydba/tofu-garnish@v1
