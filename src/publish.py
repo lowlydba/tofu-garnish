@@ -104,7 +104,7 @@ def _dump_module_descriptions(module_dir: str) -> str:
         return handle.name
 
 
-def generate_site(site_dir: str) -> None:
+def generate_site(site_dir: str, previous_dir: str = "") -> None:
     """Run the garnish generator into ``site_dir`` based on the environment."""
     workspaces = os.environ.get("GARNISH_WORKSPACES", "")
     outputs_file = os.environ.get("GARNISH_OUTPUTS_FILE", "")
@@ -118,6 +118,8 @@ def generate_site(site_dir: str) -> None:
     docs_dir = os.environ.get("GARNISH_DOCS_DIR", "")
 
     argv = ["--output-dir", site_dir, "--title", title]
+    if previous_dir:
+        argv += ["--previous-dir", previous_dir]
     if docs_dir:
         argv += ["--docs-dir", docs_dir]
     if source_url:
@@ -200,17 +202,47 @@ def _branch_tip(api, repo: str, branch: str) -> str | None:
         raise
 
 
+def _fetch_file(api, repo: str, branch: str, path: str) -> bytes | None:
+    """Contents of ``path`` on the branch, or None when it doesn't exist."""
+    try:
+        data = api("GET", f"/repos/{repo}/contents/{path}?ref={branch}")
+    except ApiError as exc:
+        if exc.status == 404:
+            return None
+        raise
+    return base64.b64decode(data.get("content", "") or "")
+
+
 def _seed_manifest(api, repo: str, branch: str, site_dir: Path, prefix: str = "") -> None:
     """Copy the branch's manifest.json into ``site_dir`` so --merge sees it."""
     base = f"{prefix}/" if prefix else ""
+    content = _fetch_file(api, repo, branch, f"{base}manifest.json")
+    if content is not None:
+        (site_dir / "manifest.json").write_bytes(content)
+
+
+def _workspace_slugs() -> list[str]:
+    """Site subdirectories being generated ('' for the single-page layout)."""
+    lines = [s.strip() for s in os.environ.get("GARNISH_WORKSPACES", "").splitlines() if s.strip()]
+    if not lines:
+        return [""]
     try:
-        data = api("GET", f"/repos/{repo}/contents/{base}manifest.json?ref={branch}")
-    except ApiError as exc:
-        if exc.status == 404:
-            return
-        raise
-    content = base64.b64decode(data.get("content", "") or "")
-    (site_dir / "manifest.json").write_bytes(content)
+        return [garnish.slugify(garnish.parse_workspace_spec(s)[0]) for s in lines]
+    except ValueError:
+        return []
+
+
+def _seed_previous(api, repo: str, branch: str, prev_dir: Path, prefix: str = "") -> None:
+    """Fetch the previous publish's outputs.json/.garnish-state.json into ``prev_dir``."""
+    base = f"{prefix}/" if prefix else ""
+    for slug in _workspace_slugs():
+        sub = f"{slug}/" if slug else ""
+        for name in ("outputs.json", ".garnish-state.json"):
+            content = _fetch_file(api, repo, branch, f"{base}{sub}{name}")
+            if content is not None:
+                target = prev_dir / sub / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(content)
 
 
 def _set_output(name: str, value: str) -> None:
@@ -228,12 +260,22 @@ def publish(api=None, sleep=None) -> int:
     branch = os.environ["PAGES_BRANCH"]
     merge_mode = bool(os.environ.get("GARNISH_WORKSPACES", "").strip())
     prefix = _site_prefix()
+    show_changes = (
+        os.environ.get("GARNISH_SHOW_CHANGES", "false") == "true"
+        and os.environ.get("GARNISH_OUTPUTS_JSON", "true") == "true"
+    )
 
     def build(tip):
         site_dir = Path(tempfile.mkdtemp(prefix="tofu-garnish-"))
         if tip and merge_mode:
             _seed_manifest(api, repo, branch, site_dir, prefix)
-        generate_site(str(site_dir))
+        previous_dir = ""
+        if show_changes:
+            prev = Path(tempfile.mkdtemp(prefix="tofu-garnish-prev-"))
+            if tip:
+                _seed_previous(api, repo, branch, prev, prefix)
+            previous_dir = str(prev)
+        generate_site(str(site_dir), previous_dir)
         (site_dir / ".nojekyll").write_text("", encoding="utf-8")
         _set_output("site-dir", str(site_dir))
         entries = _collect_files(api, repo, site_dir, prefix)

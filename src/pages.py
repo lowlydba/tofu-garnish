@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from model import CHECK_MARK, DOCS_DIR, LINK_ICON, REPO_URL, Page, Provenance, __version__
-from tree import _esc, _link_button, _render_output
+from tree import CHANGE_HINT, _esc, _link_button, _render_output
 
 _ASSETS = Path(__file__).resolve().parent / "assets"
 
@@ -101,10 +101,21 @@ def _docs_nav(docs: list[tuple[str, str]], prefix: str = "") -> str:
 
 def render_page(page: Page) -> str:
     """Render the full, self-contained HTML document."""
+    changes = page.changes
+    changed = f" · {_plural(changes.count, 'output')} changed" if changes and changes.count else ""
     if page.outputs:
-        sections = "".join(_render_output(o, page.share_url) for o in page.outputs)
+        sections = "".join(
+            _render_output(o, page.share_url, changes.status(o.name) if changes else "")
+            for o in page.outputs
+        )
     else:
         sections = '<p class="empty">No outputs found.</p>'
+    if changes and changes.removed:
+        sections += "".join(
+            f'<section class="removed" title="{_esc(CHANGE_HINT)}"><h2>{_esc(name)} '
+            '<span class="badge destroyed">destroyed</span></h2></section>'
+            for name in changes.removed
+        )
     back = (
         f'<p class="back"><a href="{_esc(page.back_href)}">← all workspaces</a></p>'
         if page.back_href
@@ -112,7 +123,7 @@ def render_page(page: Page) -> str:
     )
     header = (
         f"{back}<h1>{_esc(page.title)}</h1>\n"
-        f"<p>{_plural(len(page.outputs), 'output')} · generated {_esc(page.generated_at)}"
+        f"<p>{_plural(len(page.outputs), 'output')}{changed} · generated {_esc(page.generated_at)}"
         f"{_provenance_html(page.provenance)}{_source_link(page.source_url)}"
         f"{_json_link(_absolute(page.share_url, page.json_href))}"
         f"{_share_fragment(page.share_url)}</p>\n"

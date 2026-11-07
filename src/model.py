@@ -60,6 +60,7 @@ class Page:
     provenance: Provenance | None = None
     share_url: str = ""
     docs: list[tuple[str, str]] = field(default_factory=list)
+    changes: object | None = None
 
 
 def provenance_from_env() -> Provenance | None:

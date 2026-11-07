@@ -18,6 +18,7 @@
 | `site-url`    | no       | none                | Public base URL when the site is served from a vanity domain (e.g. `https://labs.example.org/my-repo`). Adds "copy link" buttons that copy URLs under it instead of the browser's address. |
 | `footer`       | no       | `"true"`            | Render the "Served with 💚 by 🌿 tofu-garnish" footer (links to this repo) on generated pages. Set `"false"` to omit it.                          |
 | `outputs-json` | no       | `"true"`            | Write a machine-readable `outputs.json` next to each generated page (sensitive outputs omitted). Set `"false"` to publish HTML only.             |
+| `show-changes` | no       | `"false"`           | Badge outputs created or updated since the previous publish, list destroyed ones, and add an "N outputs changed" count. Compares against the `outputs.json` on the Pages branch, so it needs `outputs-json`. Differences are between publishes, not exact apply times. |
 | `output-dir`   | no       | `tofu-garnish-site` | Where the site is written when `deploy` is `"false"`.                                                                                            |
 | `deploy`       | no       | `"true"`            | Commit the site to the Pages branch. Set `"false"` to only generate HTML.                                                                        |
 | `pages-branch` | no       | `gh-pages`          | Branch GitHub Pages serves from. Created automatically if missing.                                                                               |
