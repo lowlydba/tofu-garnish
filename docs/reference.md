@@ -65,6 +65,8 @@ gh-pages
 ├── .nojekyll
 ├── index.html        # landing page listing all workspaces
 ├── manifest.json     # machine-readable workspace index (used for merging)
+├── docs/             # only with docs-dir: one folder per Markdown page
+│   └── <name>/index.html
 ├── prod-us/
 │   ├── index.html
 │   └── outputs.json  # machine-readable outputs for this workspace
@@ -105,8 +107,11 @@ With `show-changes: "true"` (CLI: `--previous-dir DIR`, a directory laid out lik
 ## CLI reference
 
 ```text
-usage: garnish [-h] [--input INPUT] [--workspace NAME=PATH] [--merge]
-               [--output-dir OUTPUT_DIR] [--title TITLE] [--version]
+usage: garnish [-h] [--input INPUT] [--workspace NAME=PATH]
+               [--descriptions PATH] [--merge] [--output-dir OUTPUT_DIR]
+               [--title TITLE] [--source-url URL] [--site-url URL]
+               [--no-footer] [--no-outputs-json] [--docs-dir DIR]
+               [--previous-dir DIR] [--version]
 
 --input       Path to a JSON outputs file, or '-' for stdin (default).
 --workspace   Named outputs file, repeatable; builds a multi-workspace site.
@@ -114,11 +119,19 @@ usage: garnish [-h] [--input INPUT] [--workspace NAME=PATH] [--merge]
                 plain {"name": "description"} map); rendered under each
                 output. OpenTofu only.
 --merge       Preserve workspaces recorded in the output dir's manifest.json.
---previous-dir  Directory holding the previous publish's outputs.json; flags
-                outputs created, updated or destroyed since then.
+                Requires at least one --workspace.
 --output-dir  Directory to write the site into (default: site).
 --title       Page title (default: 'Tofu Outputs').
+--source-url  Repository URL rendered as a "source repository" link.
+--site-url    Public base URL; adds "copy link" buttons under it.
+--no-footer   Omit the tofu-garnish footer.
+--no-outputs-json  Skip writing outputs.json next to each page.
+--docs-dir    Directory of Markdown files rendered under /docs/<name>/.
+--previous-dir  Directory holding the previous publish's outputs.json; flags
+                outputs created, updated or destroyed since then.
+--version     Print the version and exit.
 ```
 
 Exit codes: `0` success, `2` bad input (missing file, invalid JSON,
-non-object top level, bad workspace spec, or clashing workspace names).
+non-object top level, bad workspace spec, clashing workspace names, or
+`--merge` without `--workspace`).
