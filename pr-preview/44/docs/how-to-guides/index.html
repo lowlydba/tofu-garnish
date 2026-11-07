@@ -152,12 +152,12 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 vpc-01463b6b84e1454ce</code></pre>
 <p>Single-workspace sites serve it at the site root (<code>/outputs.json</code>). The shape is documented in <a href="../reference/#machine-readable-outputsjson">Reference</a>. Don't want it? Set the <code>outputs-json</code> input to <code>"false"</code>.</p>
 <h2 id="show-what-changed-since-the-last-publish">Show what changed since the last publish<a class="anchor" href="#show-what-changed-since-the-last-publish" aria-label="Copy link to this section">#</a></h2>
-<p>Set <code>show-changes: "true"</code> and each page compares its outputs with the <code>outputs.json</code> already on the Pages branch. Outputs that are new get a "created" pill, changed values get "updated", and outputs that disappeared get a "destroyed" card at the bottom. The meta line gains an "N outputs changed" count.</p>
+<p>Set <code>show-changes: "true"</code> and each page compares its outputs with the <code>outputs.json</code> already on the Pages branch. New outputs get a "created" pill, changed values "updated", and removed ones a "destroyed" card at the bottom.</p>
 <pre><code>      - uses: lowlydba/tofu-garnish@v1
         with:
           outputs-file: outputs.json
           show-changes: &quot;true&quot;</code></pre>
-<p>The comparison is against the previous publish only, so it shows differences between publishes, not exact apply times. The first publish has nothing to compare against and shows no pills. Sensitive outputs are compared by name only, never by value. This needs <code>outputs-json</code> left on.</p>
+<p>The first publish shows no pills. Sensitive outputs are compared by name only. Needs <code>outputs-json</code> left on; details in the <a href="../reference/#change-detection-show-changes">Reference</a>.</p>
 <h2 id="publish-a-preview-for-each-pull-request">Publish a preview for each pull request<a class="anchor" href="#publish-a-preview-for-each-pull-request" aria-label="Copy link to this section">#</a></h2>
 <p>Publish every pull request to its own folder on the Pages branch and delete it when the PR closes. Other files on the branch are untouched, so previews sit next to your real site.</p>
 <p>Publish on each push:</p>
@@ -207,7 +207,7 @@ jobs:
         with:
           remove: &quot;true&quot;
           site-path: pr-preview/${{ github.event.pull_request.number }}</code></pre>
-<ul><li>Both workflows share a concurrency group per PR number, so a cleanup never races a late publish.</li><li>The <code>page-url</code> output is the preview's URL; post it with <code>gh pr comment --edit-last --create-if-none</code> to keep a single comment per PR.</li><li>With <code>show-changes</code>, each push is compared with the previous push of the same preview, so reviewers see what moved since the last build.</li><li>This repository runs exactly this setup: see <code>.github/workflows/preview.yml</code> and <code>.github/workflows/preview-cleanup.yml</code>.</li></ul>
+<ul><li>Both workflows share a concurrency group per PR number, so a cleanup never races a late publish.</li><li>The <code>page-url</code> output is the preview's URL; post it with <code>gh pr comment --edit-last --create-if-none</code> to keep a single comment per PR.</li><li>This repository runs exactly this setup: see <code>.github/workflows/preview.yml</code> and <code>.github/workflows/preview-cleanup.yml</code>.</li></ul>
 <h2 id="generate-the-html-without-deploying">Generate the HTML without deploying<a class="anchor" href="#generate-the-html-without-deploying" aria-label="Copy link to this section">#</a></h2>
 <p>Set <code>deploy: "false"</code> and do whatever you like with the site directory: upload it elsewhere, attach it as an artifact, or serve it from another host.</p>
 <pre><code>      - uses: lowlydba/tofu-garnish@v1
@@ -221,14 +221,13 @@ jobs:
           name: outputs-page
           path: ${{ steps.garnish.outputs.site-dir }}</code></pre>
 <h2 id="run-the-generator-locally">Run the generator locally<a class="anchor" href="#run-the-generator-locally" aria-label="Copy link to this section">#</a></h2>
-<p>The generator is a single stdlib-only Python script with no dependencies to install:</p>
+<p>The generator is stdlib-only Python with nothing to install:</p>
 <pre><code>$ tofu output -json | python3 src/garnish.py --title &quot;My Stack&quot; --output-dir site
 garnish: wrote site/index.html (7 outputs)</code></pre>
-<p>Multi-workspace sites work locally too, with <code>--workspace name=path</code> (repeatable) and <code>--merge</code> to preserve workspaces already in the output directory. Set <code>SOURCE_DATE_EPOCH</code> for a reproducible timestamp.</p>
-<p>No infrastructure handy? The repo ships provider-less example configs that produce realistic outputs:</p>
+<p>Multi-workspace sites work locally too, with <code>--workspace name=path</code> (repeatable) and <code>--merge</code>. Set <code>SOURCE_DATE_EPOCH</code> for a reproducible timestamp. All flags are in the <a href="../reference/#cli-reference">CLI reference</a>.</p>
+<p>No infrastructure handy? The repo ships provider-less example configs:</p>
 <pre><code>$ tofu -chdir=examples/demo init &amp;&amp; tofu -chdir=examples/demo apply -auto-approve
 $ tofu -chdir=examples/demo output -json | python3 src/garnish.py --output-dir site</code></pre>
-<p>CI applies these with real OpenTofu and runs the action on the result, and the demo workflow publishes them to this repo's Pages.</p>
 </article>
 </main>
 <footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
