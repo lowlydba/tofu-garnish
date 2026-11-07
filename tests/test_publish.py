@@ -18,8 +18,15 @@ class FakeApi:
     """In-memory stand-in for the GitHub Git Data API."""
 
     def __init__(
-        self, tip=None, manifest=None, fail_pushes=0, page_url="https://ex.io/r/", files=None
+        self,
+        tip=None,
+        manifest=None,
+        fail_pushes=0,
+        page_url="https://ex.io/r/",
+        files=None,
+        large=(),
     ):
+        self.large = set(large)
         self.files = files or {}
         self.tip = tip
         self.manifest = manifest
@@ -43,9 +50,19 @@ class FakeApi:
 
             if name == "manifest.json" and self.manifest:
                 return {"content": base64.b64encode(self.manifest.encode()).decode()}
+            if name in self.files and name in self.large:
+                return {"encoding": "none", "content": "", "sha": "big:" + name.replace("/", "|")}
             if name in self.files:
-                return {"content": base64.b64encode(self.files[name].encode()).decode()}
+                return {
+                    "encoding": "base64",
+                    "content": base64.b64encode(self.files[name].encode()).decode(),
+                }
             raise ApiError(404, "not found")
+        if method == "GET" and "/git/blobs/" in path:
+            import base64
+
+            name = path.rsplit("/", 1)[1].removeprefix("big:").replace("|", "/")
+            return {"content": base64.b64encode(self.files[name].encode()).decode()}
         if method == "GET" and "/git/commits/" in path:
             return {"tree": {"sha": "basetree-" + path.rsplit("/", 1)[1]}}
         if method == "POST" and path.endswith("/git/blobs"):
@@ -318,6 +335,15 @@ class TestPublish:
         assert 'class="badge destroyed"' in page
         assert "<h2>stale " in page
         assert "prod/.garnish-state.json" in tree
+
+    def test_show_changes_reads_files_over_the_contents_api_limit(self, env, monkeypatch):
+        monkeypatch.setenv("GARNISH_SHOW_CHANGES", "true")
+        monkeypatch.setenv("GARNISH_WORKSPACES", f"prod={FIXTURES / 'tofu_output_json.json'}")
+        files = {"prod/outputs.json": json.dumps({"stale": 1})}
+        api = FakeApi(tip="a" * 40, files=files, large={"prod/outputs.json"})
+        assert run_publish(api=api, sleep=lambda _: None) == 0
+        page = next(e for e in api.last_tree["tree"] if e["path"] == "prod/index.html")
+        assert 'class="badge destroyed"' in page["content"]
 
     def test_show_changes_first_publish_has_no_badges(self, env, monkeypatch):
         monkeypatch.setenv("GARNISH_SHOW_CHANGES", "true")

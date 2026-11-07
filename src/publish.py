@@ -210,6 +210,9 @@ def _fetch_file(api, repo: str, branch: str, path: str) -> bytes | None:
         if exc.status == 404:
             return None
         raise
+    if data.get("encoding") != "base64" and data.get("sha"):
+        # The Contents API omits inline content above 1 MB; the blobs API returns it.
+        data = api("GET", f"/repos/{repo}/git/blobs/{data['sha']}")
     return base64.b64decode(data.get("content", "") or "")
 
 
