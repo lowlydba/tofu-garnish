@@ -130,6 +130,70 @@ Set `show-changes: "true"` and each page compares its outputs with the `outputs.
 
 The comparison is against the previous publish only, so it shows differences between publishes, not exact apply times. The first publish has nothing to compare against and shows no pills. Sensitive outputs are compared by name only, never by value. This needs `outputs-json` left on.
 
+## Publish a preview for each pull request
+
+Publish every pull request to its own folder on the Pages branch and delete it when the PR closes. Other files on the branch are untouched, so previews sit next to your real site.
+
+Publish on each push:
+
+```yaml
+name: Preview
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: tofu-garnish-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    # Fork tokens can't push to the Pages branch
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # ...plan or apply your staging config and write outputs.json
+      - uses: lowlydba/tofu-garnish@v1
+        id: garnish
+        with:
+          outputs-file: outputs.json
+          title: Preview (PR ${{ github.event.pull_request.number }})
+          site-path: pr-preview/${{ github.event.pull_request.number }}
+          show-changes: "true"
+```
+
+Remove it when the PR closes, with no path filter so cleanup always runs:
+
+```yaml
+name: Preview cleanup
+on:
+  pull_request:
+    types: [closed]
+
+concurrency:
+  group: tofu-garnish-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: lowlydba/tofu-garnish@v1
+        with:
+          remove: "true"
+          site-path: pr-preview/${{ github.event.pull_request.number }}
+```
+
+* Both workflows share a concurrency group per PR number, so a cleanup never races a late publish.
+* The `page-url` output is the preview's URL; post it with `gh pr comment --edit-last --create-if-none` to keep a single comment per PR.
+* With `show-changes`, each push is compared with the previous push of the same preview, so reviewers see what moved since the last build.
+* This repository runs exactly this setup: see `.github/workflows/preview.yml` and `.github/workflows/preview-cleanup.yml`.
+
 ## Generate the HTML without deploying
 
 Set `deploy: "false"` and do whatever you like with the site directory:
