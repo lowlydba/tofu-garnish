@@ -44,8 +44,8 @@ output "vpc_id" {
 
 ## Keep sibling objects shape-uniform
 
-A list of dicts becomes a tree with one collapsible node per item (keyed by
-its index), each listing that item's keys. Uniform shapes make the items easy
+A list of dicts becomes a tree with one collapsible node per item (marked with
+a bullet rather than an index), each listing that item's keys. Uniform shapes make the items easy
 to compare at a glance, so keep the keys consistent:
 
 ```hcl

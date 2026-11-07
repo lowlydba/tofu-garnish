@@ -192,7 +192,7 @@ class TestCopyButtons:
 class TestRenderNested:
     def test_map_becomes_tree_rows(self):
         html = render('{"vpc": {"id": "vpc-123", "cidr": "10.0.0.0/16"}}')
-        assert '<ul class="tree">' in html
+        assert '<ul class="tree" role="list">' in html
         assert '<span class="k">id</span>' in html
         assert "<code>vpc-123</code>" in html
 
@@ -211,10 +211,12 @@ class TestRenderNested:
         assert '<span class="hint">{2}</span>' in html
         assert '<span class="hint">[3]</span>' in html
 
-    def test_list_items_keyed_by_index(self):
+    def test_list_items_use_bullet_not_index(self):
         html = render('{"arns": ["arn:a", "arn:b"]}')
-        assert '<span class="k">0</span>' in html
+        assert '<span class="k item" aria-hidden="true">\u2022</span>' in html
+        assert '<span class="k">0</span>' not in html
         assert "<code>arn:a</code>" in html
+        assert "Copy &#x27;item&#x27;" in html or "Copy 'item'" in html
 
     def test_list_of_objects(self):
         html = render(fixture("tofu_output_json.json"))
