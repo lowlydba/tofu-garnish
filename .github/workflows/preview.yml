@@ -58,6 +58,7 @@ jobs:
           docs-dir: docs
           title: tofu-garnish preview (PR ${{ github.event.pull_request.number }})
           site-path: pr-preview/${{ github.event.pull_request.number }}
+          show-changes: "true"
 
       - name: Comment preview URL
         env:
