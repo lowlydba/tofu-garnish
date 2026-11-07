@@ -2,6 +2,17 @@
 
 # Reference
 
+On this page:
+
+- [Action inputs](#action-inputs)
+- [Action outputs](#action-outputs)
+- [Accepted input formats](#accepted-input-formats)
+- [Site structure (workspaces mode)](#site-structure-workspaces-mode)
+- [Machine-readable outputs.json](#machine-readable-outputsjson)
+- [Change detection (show-changes)](#change-detection-show-changes)
+- [Workflow requirements (when deploying)](#workflow-requirements-when-deploying)
+- [CLI reference](#cli-reference)
+
 ## Action inputs
 
 | Input          | Required | Default             | Description                                                                                                                                    |

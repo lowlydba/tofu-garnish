@@ -2,6 +2,19 @@
 
 # How-to guides
 
+On this page:
+
+- [Publish multiple workspaces, accounts, or tenants](#publish-multiple-workspaces-accounts-or-tenants)
+- [Update one workspace without touching the others](#update-one-workspace-without-touching-the-others)
+- [Show output descriptions on the page (OpenTofu only)](#show-output-descriptions-on-the-page-opentofu-only)
+- [Use it without dflook actions](#use-it-without-dflook-actions)
+- [Pass outputs inline instead of a file](#pass-outputs-inline-instead-of-a-file)
+- [Consume outputs from scripts and other pipelines](#consume-outputs-from-scripts-and-other-pipelines)
+- [Show what changed since the last publish](#show-what-changed-since-the-last-publish)
+- [Publish a preview for each pull request](#publish-a-preview-for-each-pull-request)
+- [Generate the HTML without deploying](#generate-the-html-without-deploying)
+- [Run the generator locally](#run-the-generator-locally)
+
 ## Publish multiple workspaces, accounts, or tenants
 
 Use the `workspaces` input, one `name=path` pair per line. Each workspace

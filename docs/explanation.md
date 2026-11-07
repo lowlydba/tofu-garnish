@@ -2,6 +2,15 @@
 
 # Explanation
 
+On this page:
+
+- [Why does this exist?](#why-does-this-exist)
+- [Why not just publish the JSON?](#why-not-just-publish-the-json)
+- [Why a Pages branch instead of `deploy-pages` artifacts?](#why-a-pages-branch-instead-of-deploy-pages-artifacts)
+- [Why "OpenTofu only" for descriptions?](#why-opentofu-only-for-descriptions)
+- [How are sensitive values handled?](#how-are-sensitive-values-handled)
+- [Security posture](#security-posture)
+
 ## Why does this exist?
 
 Complex, dynamic Tofu configurations are great for platform teams and
