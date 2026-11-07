@@ -4,12 +4,6 @@
 
 *Publish your Tofu outputs to GitHub Pages in about five minutes.*
 
-On this page:
-
-- [1. Add a workflow](#1-add-a-workflow)
-- [2. Enable GitHub Pages for the branch](#2-enable-github-pages-for-the-branch)
-- [3. Visit your page](#3-visit-your-page)
-
 ## 1. Add a workflow
 
 Create `.github/workflows/publish-outputs.yml`:
