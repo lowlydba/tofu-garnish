@@ -1,7 +1,4 @@
 {
-  "added": [],
-  "modified": [],
-  "removed": [],
   "sensitive": [
     "database_password"
   ]
