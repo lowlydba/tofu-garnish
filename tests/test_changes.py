@@ -51,6 +51,25 @@ def test_missing_changes_json_does_not_flag_sensitive(tmp_path):
     assert compute_changes(outs, prev).count == 0
 
 
+def test_bool_to_number_is_a_change(tmp_path):
+    prev = _prev(tmp_path, {"flag": True, "n": 0, "nested": {"x": [False]}})
+    outs = [Output("flag", 1), Output("n", False), Output("nested", {"x": [0]})]
+    assert compute_changes(outs, prev).modified == ["flag", "n", "nested"]
+
+
+def test_destroyed_cards_are_filterable(tmp_path):
+    prev = tmp_path / "prev"
+    prev.mkdir()
+    _prev(prev, {"Gone": 1})
+    src = tmp_path / "in.json"
+    src.write_text(json.dumps({"a": 1}))
+    out = tmp_path / "site"
+    garnish.main(["--input", str(src), "--output-dir", str(out), "--previous-dir", str(prev)])
+    html = (out / "index.html").read_text(encoding="utf-8")
+    assert 'class="removed" data-search="gone"' in html
+    assert "section.output, section.removed" in html
+
+
 def test_cli_renders_badges_and_files(tmp_path):
     prev = tmp_path / "prev"
     prev.mkdir()
@@ -69,7 +88,7 @@ def test_cli_renders_badges_and_files(tmp_path):
     assert "not exact apply times" in html
     assert 'class="badge destroyed"' in html
     changes = json.loads((out / ".garnish-state.json").read_text())
-    assert changes["added"] == ["c"] and changes["removed"] == ["b"]
+    assert changes == {"sensitive": []}
 
 
 def test_no_previous_dir_has_no_badges(tmp_path):

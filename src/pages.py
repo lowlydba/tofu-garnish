@@ -112,7 +112,8 @@ def render_page(page: Page) -> str:
         sections = '<p class="empty">No outputs found.</p>'
     if changes and changes.removed:
         sections += "".join(
-            f'<section class="removed" title="{_esc(CHANGE_HINT)}"><h2>{_esc(name)} '
+            f'<section class="removed" data-search="{_esc(name.lower())}" '
+            f'title="{_esc(CHANGE_HINT)}"><h2>{_esc(name)} '
             '<span class="badge destroyed">destroyed</span></h2></section>'
             for name in changes.removed
         )

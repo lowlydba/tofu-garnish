@@ -46,6 +46,11 @@ def _read_json(path: Path) -> object:
         return None
 
 
+def _canonical(value: object) -> str:
+    """Type-preserving form: Python's == treats True as 1 and False as 0."""
+    return json.dumps(value, sort_keys=True)
+
+
 def compute_changes(outputs: list[Output], previous_dir: str | Path) -> Changes | None:
     """Compare ``outputs`` with the previous publish found in ``previous_dir``.
 
@@ -73,7 +78,7 @@ def compute_changes(outputs: list[Output], previous_dir: str | Path) -> Changes 
                 changes.added.append(name)
         elif not existed:
             changes.added.append(name)
-        elif was_sensitive or prev_values[name] != output.value:
+        elif was_sensitive or _canonical(prev_values[name]) != _canonical(output.value):
             changes.modified.append(name)
 
     current = {o.name for o in outputs}
@@ -82,12 +87,8 @@ def compute_changes(outputs: list[Output], previous_dir: str | Path) -> Changes 
     return changes
 
 
-def state_json(changes: Changes | None, outputs: list[Output]) -> str:
-    """Internal state (not a public API): changes plus sensitive names for the next diff."""
-    data = {
-        "added": changes.added if changes else [],
-        "modified": changes.modified if changes else [],
-        "removed": changes.removed if changes else [],
-        "sensitive": sorted(o.name for o in outputs if o.sensitive),
-    }
-    return json.dumps(data, indent=2) + "\n"
+def state_json(outputs: list[Output]) -> str:
+    """Internal state (not a public API): sensitive names, since outputs.json omits them."""
+    return (
+        json.dumps({"sensitive": sorted(o.name for o in outputs if o.sensitive)}, indent=2) + "\n"
+    )

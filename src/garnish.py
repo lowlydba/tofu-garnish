@@ -271,8 +271,7 @@ def _run_single(args: argparse.Namespace) -> int:
     out_file.write_text(render_page(page), encoding="utf-8")
     if not args.no_outputs_json:
         (out_dir / "outputs.json").write_text(outputs_json(outputs), encoding="utf-8")
-        if args.previous_dir:
-            (out_dir / STATE_FILE).write_text(state_json(changes, outputs), encoding="utf-8")
+        (out_dir / STATE_FILE).write_text(state_json(outputs), encoding="utf-8")
     print(f"garnish: wrote {out_file} ({len(outputs)} outputs)")
     return 0
 
@@ -361,8 +360,7 @@ def _run_workspaces(args: argparse.Namespace) -> int:
         (ws_dir / "index.html").write_text(render_page(page), encoding="utf-8")
         if not args.no_outputs_json:
             (ws_dir / "outputs.json").write_text(outputs_json(outputs), encoding="utf-8")
-            if args.previous_dir:
-                (ws_dir / STATE_FILE).write_text(state_json(changes, outputs), encoding="utf-8")
+            (ws_dir / STATE_FILE).write_text(state_json(outputs), encoding="utf-8")
         merged[slug] = {
             "name": name,
             "outputs": len(outputs),

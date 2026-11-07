@@ -295,9 +295,16 @@ class TestPublish:
             ".nojekyll",
             "index.html",
             "manifest.json",
+            "prod/.garnish-state.json",
             "prod/index.html",
             "prod/outputs.json",
         ]
+
+    def test_state_refreshed_even_when_show_changes_off(self, env, monkeypatch):
+        monkeypatch.setenv("GARNISH_WORKSPACES", f"prod={FIXTURES / 'tofu_output_json.json'}")
+        api = FakeApi(tip="a" * 40)
+        assert run_publish(api=api, sleep=lambda _: None) == 0
+        assert any(e["path"] == "prod/.garnish-state.json" for e in api.last_tree["tree"])
 
     def test_show_changes_badges_against_previous_publish(self, env, monkeypatch):
         monkeypatch.setenv("GARNISH_SHOW_CHANGES", "true")
