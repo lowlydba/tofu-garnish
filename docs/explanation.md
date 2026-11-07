@@ -22,21 +22,16 @@ human-readable URL that is regenerated on every apply.
 ## Why not just publish the JSON?
 
 Raw `output -json` is noisy: values are buried in `value`/`type`/`sensitive`
-wrappers, nested objects become walls of braces, and nothing is scannable.
-tofu-garnish flattens that into structure-aware HTML: maps and lists become
-collapsible trees (the first two levels open, deeper levels collapsed), and every
-node gets a copy button on hover (plain text for scalars, pretty JSON for
-anything nested). It's
-deliberately KISS: self-contained HTML files, no framework, no build
-step, dark-mode via `prefers-color-scheme`, and a few lines of vanilla JS
-for filtering and copying.
+wrappers and nested objects become walls of braces. tofu-garnish flattens
+that into structure-aware HTML: maps and lists become collapsible trees (the
+first two levels open), and every node gets a copy button on hover. It's
+deliberately KISS: self-contained HTML, no framework, no build step, dark
+mode via `prefers-color-scheme`, and a little vanilla JS for filtering and
+copying.
 
-The HTML page is for humans, not a replacement for automation, so
-tofu-garnish also writes a clean `outputs.json` next to each page: the same
-name-to-value map, minus the `value`/`type`/`sensitive` wrappers and minus
-sensitive outputs entirely. A script that just needs `vpc_id` can hit the
-JSON directly (see [Reference](reference.md#machine-readable-outputsjson)),
-no HTML parsing required.
+The HTML is for humans, so tofu-garnish also writes a clean `outputs.json`
+next to each page for scripts (see
+[Reference](reference.md#machine-readable-outputsjson)).
 
 ## Why a Pages branch instead of `deploy-pages` artifacts?
 
@@ -53,11 +48,10 @@ against the fresh branch tip.
 
 The `description` argument on `output` blocks never makes it into
 `output -json` or state; it exists only in configuration. OpenTofu 1.10
-added configuration inspection to `show` (`-config` and `-module=DIR`
-modes); `-module` even works as a pure static parse, with no init, state,
-or providers. Terraform has no equivalent, and parsing HCL ourselves would
-violate the KISS budget. This is a Tofu-focused project, so the feature
-follows the Tofu toolchain.
+added configuration inspection to `show` (`-config` and `-module=DIR`);
+`-module` is a pure static parse, with no init, state, or providers.
+Terraform has no equivalent, and parsing HCL ourselves would break the KISS
+budget.
 
 ## How are sensitive values handled?
 
@@ -70,8 +64,8 @@ your repo. Don't publish outputs you wouldn't commit to the README.
 
 ## Security posture
 
-The whole action is two stdlib-only Python scripts: no third-party actions,
-no npm, no shell logic beyond one `python3` invocation. All user-controlled
+The whole action is stdlib-only Python: no third-party actions, no npm, no
+shell logic beyond one `python3` invocation. All user-controlled
 values are passed through environment variables (never interpolated into
 shell), all rendered content is HTML-escaped, and the token is only sent as
 an Authorization header to the GitHub API. CI runs [zizmor][zizmor] with the
