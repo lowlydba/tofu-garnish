@@ -115,6 +115,8 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 ├── .nojekyll
 ├── index.html        # landing page listing all workspaces
 ├── manifest.json     # machine-readable workspace index (used for merging)
+├── docs/             # only with docs-dir: one folder per Markdown page
+│   └── &lt;name&gt;/index.html
 ├── prod-us/
 │   ├── index.html
 │   └── outputs.json  # machine-readable outputs for this workspace
@@ -135,8 +137,11 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
 <h2 id="workflow-requirements-when-deploying">Workflow requirements (when deploying)<a class="anchor" href="#workflow-requirements-when-deploying" aria-label="Copy link to this section">#</a></h2>
 <ul><li>Job permission <code>contents: write</code> (or a <code>github-token</code> that has it).</li><li>GitHub Pages source set to <strong>Deploy from a branch</strong> → your <code>pages-branch</code>.</li><li>A shared <code>concurrency</code> group if multiple workflows may deploy at once.</li></ul>
 <h2 id="cli-reference">CLI reference<a class="anchor" href="#cli-reference" aria-label="Copy link to this section">#</a></h2>
-<pre><code>usage: garnish [-h] [--input INPUT] [--workspace NAME=PATH] [--merge]
-               [--output-dir OUTPUT_DIR] [--title TITLE] [--version]
+<pre><code>usage: garnish [-h] [--input INPUT] [--workspace NAME=PATH]
+               [--descriptions PATH] [--merge] [--output-dir OUTPUT_DIR]
+               [--title TITLE] [--source-url URL] [--site-url URL]
+               [--no-footer] [--no-outputs-json] [--docs-dir DIR]
+               [--previous-dir DIR] [--version]
 
 --input       Path to a JSON outputs file, or &#x27;-&#x27; for stdin (default).
 --workspace   Named outputs file, repeatable; builds a multi-workspace site.
@@ -144,11 +149,18 @@ article.doc th, article.doc td { border: 1px solid var(--border); padding: 0.25r
                 plain {&quot;name&quot;: &quot;description&quot;} map); rendered under each
                 output. OpenTofu only.
 --merge       Preserve workspaces recorded in the output dir&#x27;s manifest.json.
+                Requires at least one --workspace.
+--output-dir  Directory to write the site into (default: site).
+--title       Page title (default: &#x27;Tofu Outputs&#x27;).
+--source-url  Repository URL rendered as a &quot;source repository&quot; link.
+--site-url    Public base URL; adds &quot;copy link&quot; buttons under it.
+--no-footer   Omit the tofu-garnish footer.
+--no-outputs-json  Skip writing outputs.json next to each page.
+--docs-dir    Directory of Markdown files rendered under /docs/&lt;name&gt;/.
 --previous-dir  Directory holding the previous publish&#x27;s outputs.json; flags
                 outputs created, updated or destroyed since then.
---output-dir  Directory to write the site into (default: site).
---title       Page title (default: &#x27;Tofu Outputs&#x27;).</code></pre>
-<p>Exit codes: <code>0</code> success, <code>2</code> bad input (missing file, invalid JSON, non-object top level, bad workspace spec, or clashing workspace names).</p>
+--version     Print the version and exit.</code></pre>
+<p>Exit codes: <code>0</code> success, <code>2</code> bad input (missing file, invalid JSON, non-object top level, bad workspace spec, clashing workspace names, or <code>--merge</code> without <code>--workspace</code>).</p>
 </article>
 </main>
 <footer>Served with 💚 by 🌿 <a class="src" href="https://github.com/lowlydba/tofu-garnish">tofu-garnish</a>.</footer>
