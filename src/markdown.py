@@ -181,10 +181,9 @@ def render_markdown(text: str, resolve=None) -> str:
 
 def doc_title(text: str, fallback: str) -> str:
     """Title of a docs page: its first H1 (HTML comments removed), else ``fallback``."""
-    for line in text.splitlines():
+    for line in _HTML_COMMENT.sub("", text).splitlines():
         if m := re.match(r"^#\s+(.*?)\s*#*\s*$", line.strip()):
-            heading = _HTML_COMMENT.sub("", m[1])
-            return _MD_MARKUP.sub(lambda mm: mm[2] or "", heading).strip() or fallback
+            return _MD_MARKUP.sub(lambda mm: mm[2] or "", m[1]).strip() or fallback
     return fallback
 
 
