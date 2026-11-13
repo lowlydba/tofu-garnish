@@ -94,6 +94,9 @@ def _heading_id(text: str, used: set[str]) -> str:
     return slug
 
 
+_HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
 def render_markdown(text: str, resolve=None) -> str:
     """Render a practical Markdown subset to HTML.
 
@@ -177,8 +180,8 @@ def render_markdown(text: str, resolve=None) -> str:
 
 
 def doc_title(text: str, fallback: str) -> str:
-    """Title of a docs page: its first H1, else ``fallback``."""
-    for line in text.splitlines():
+    """Title of a docs page: its first H1 (HTML comments removed), else ``fallback``."""
+    for line in _HTML_COMMENT.sub("", text).splitlines():
         if m := re.match(r"^#\s+(.*?)\s*#*\s*$", line.strip()):
             return _MD_MARKUP.sub(lambda mm: mm[2] or "", m[1]).strip() or fallback
     return fallback

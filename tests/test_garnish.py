@@ -1366,6 +1366,11 @@ def test_doc_title():
     assert garnish.doc_title("no heading", "fb") == "fb"
 
 
+def test_doc_title_strips_html_comments():
+    assert garnish.doc_title("# Bedrock <!-- omit in toc -->\n", "fb") == "Bedrock"
+    assert garnish.doc_title("# Bedrock <!--\nomit in toc\n-->\n", "fb") == "Bedrock"
+
+
 def test_docs_workspace_name_reserved(tmp_path):
     outputs = tmp_path / "o.json"
     outputs.write_text('{"a": "1"}', encoding="utf-8")
